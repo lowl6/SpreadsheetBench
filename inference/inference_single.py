@@ -90,8 +90,8 @@ def gen_solution(opt):
             }
             with open(f'log/single_{opt.model}.jsonl', 'a+') as f:
                 f.write(json.dumps(data, ensure_ascii=False) + '\n')
-        with open(f'outputs/conv_single_{opt.model}.jsonl', 'a+') as fp:
-            fp.write(json.dumps(conv_result, ensure_ascii=False) + '\n')
+        with open(f'{dataset_path}/outputs/conv_single_{opt.model}.jsonl', 'a+') as fp:
+            fp.write(json.dumps(conv_result, ensure_ascii=False) + '')
 
 
 def run_solution(opt):
@@ -118,7 +118,7 @@ def parse_option():
     parser.add_argument('--api_key', type=str, default="", help='the api key of model')
     parser.add_argument('--base_url', type=str, default="", help='the base url of model')
     parser.add_argument('--dataset', type=str, default="sample_data_200", help='dataset name')
-    parser.add_argument('--code_exec_url', type=str, default="http://localhost:8081/execute", help='code execution docker url')
+    parser.add_argument('--code_exec_url', type=str, default="http://localhost:8080/execute", help='code execution docker url')
     parser.add_argument('--conv_id', type=str, default="EVAL", help='code execution conversation id')
     parser.add_argument('--row', type=int, default=5, help='the number of rows provided in the prompt')
     opt = parser.parse_args()

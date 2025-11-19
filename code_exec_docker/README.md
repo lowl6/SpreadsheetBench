@@ -1,4 +1,5 @@
 ## Code Execution Docker
+#  conda activate spreadsheetbench
 
 ### 修改config
 修改code_execution文件夹中的config.json文件，volumes_path字段表示docker中挂载的文件夹路径，请使用绝对路径。
