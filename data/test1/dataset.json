@@ -5,12 +5,5 @@
         "spreadsheet_path": "spreadsheet/59196",
         "instruction_type": "Cell-Level Manipulation",
         "answer_position": "H3:H5"
-    },
-    {
-        "id": "5-33",
-        "instruction": "How can I count 'AD' sets in Excel 2010, considering only the two rows above and below a given cell, highlight the cell in red if both rows have numbers, and have the result be 0 if both are blank, for a large number of sets (over 600)? Condition-1 If Row 1 & 2 Is A.D Count From     1 To…, Example Resulr in C72:L72 1 to 10. Condition-2 If Row 1 & 2 Has Numbers Just RED in the corosponding Result Cell M72,Z72,AA72,AH72,AI72,AJ72. Conition-3 If it is nothing then = 0.",
-        "spreadsheet_path": "spreadsheet/5-33",
-        "instruction_type": "Sheet-Level Manipulation",
-        "answer_position": "'Count AD'!B72:AR92"
     }
 ]

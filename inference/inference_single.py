@@ -52,8 +52,8 @@ def gen_solution(opt):
         try:
             file_name = f"1_{data['spreadsheet_path'].lstrip('spreadsheet/')}_input.xlsx"
 
-            input_path = f"/mnt/data/{data['spreadsheet_path']}/{file_name}"
-            output_path = f"/mnt/data/outputs/single_{opt.model}/{file_name.rstrip(f'_input.xlsx')}_output.xlsx"
+            input_path = f"/mnt/data/{opt.dataset}/{data['spreadsheet_path']}/{file_name}"
+            output_path = f"/mnt/data/{opt.dataset}/outputs/single_{opt.model}/{file_name.rstrip(f'_input.xlsx')}_output.xlsx"
             
             find_input_path = f"{dataset_path}/{data['spreadsheet_path']}/{file_name}"
             file_content = gen_file_content(find_input_path)
@@ -80,6 +80,8 @@ def gen_solution(opt):
                 'conversation': messages,
                 'solution': extract_code(response)
             }
+            with open(f'{dataset_path}/outputs/conv_single_{opt.model}.jsonl', 'a+') as fp:
+                fp.write(json.dumps(conv_result, ensure_ascii=False) + '\n')
         except Exception as e:
             print(str(e))
             conv_result = {
@@ -90,15 +92,15 @@ def gen_solution(opt):
             }
             with open(f'log/single_{opt.model}.jsonl', 'a+') as f:
                 f.write(json.dumps(data, ensure_ascii=False) + '\n')
-        with open(f'{dataset_path}/outputs/conv_single_{opt.model}.jsonl', 'a+') as fp:
-            fp.write(json.dumps(conv_result, ensure_ascii=False) + '')
+            with open(f'{dataset_path}/outputs/conv_single_{opt.model}.jsonl', 'a+') as fp:
+                fp.write(json.dumps(conv_result, ensure_ascii=False) + '\n')
 
 
 def run_solution(opt):
     client = get_exec_client(opt.code_exec_url, opt.conv_id)
     dataset_path = os.path.abspath(f'../data/{opt.dataset}')
     with open(f'{dataset_path}/outputs/conv_single_{opt.model}.jsonl', 'r') as fp:
-        conv_records = [json.loads(line) for line in fp.readlines()]
+        conv_records = [json.loads(line) for line in fp.readlines() if line.strip()]
     for conv in tqdm(conv_records):
         try:
             for idx in range(2, 4):
@@ -132,3 +134,11 @@ if __name__ == '__main__':
 
     gen_solution(opt)
     run_solution(opt)
+
+    # // {
+    # //     "id": "5-33",
+    # //     "instruction": "How can I count 'AD' sets in Excel 2010, considering only the two rows above and below a given cell, highlight the cell in red if both rows have numbers, and have the result be 0 if both are blank, for a large number of sets (over 600)? Condition-1 If Row 1 & 2 Is A.D Count From     1 To…, Example Resulr in C72:L72 1 to 10. Condition-2 If Row 1 & 2 Has Numbers Just RED in the corosponding Result Cell M72,Z72,AA72,AH72,AI72,AJ72. Conition-3 If it is nothing then = 0.",
+    # //     "spreadsheet_path": "spreadsheet/5-33",
+    # //     "instruction_type": "Sheet-Level Manipulation",
+    # //     "answer_position": "'Count AD'!B72:AR92"
+    # // }

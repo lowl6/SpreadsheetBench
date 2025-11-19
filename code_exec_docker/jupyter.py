@@ -287,7 +287,20 @@ class JupyterGatewayDocker:
         except docker.errors.ImageNotFound:
             self.client.images.pull(self.DOCKER_IMAGE)
 
-        absolute_path = os.path.abspath(docker_config['volumes_path'])
+        # Convert Windows path to WSL path if needed
+        volumes_path = docker_config['volumes_path']
+        if os.name == 'posix' and ':' in volumes_path:
+            # Convert Windows path (c:/path/to/dir) to WSL path (/mnt/c/path/to/dir)
+            import re
+            match = re.match(r'^([a-zA-Z]):', volumes_path)
+            if match:
+                drive = match.group(1).lower()
+                path_part = volumes_path[2:].replace('\\', '/')
+                absolute_path = f'/mnt/{drive}{path_part}'
+            else:
+                absolute_path = os.path.abspath(volumes_path)
+        else:
+            absolute_path = os.path.abspath(volumes_path)
 
         port = self._get_free_port()
         # Run the container and expose the port

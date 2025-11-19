@@ -3,8 +3,10 @@ conda create -n spreadsheetbench python=3.11
 
 wsl
 conda activate ssb
-cd inference&bash scripts/inference_single.sh
+cd inference&&bash scripts/inference_single.sh
 
+cd inference&&.\scripts\inference_single.ps1
 
-cd code_exec_docker 
-bash start_jupyter_server.sh 8080
+conda activate ssb&&cd code_exec_docker&&bash start_jupyter_server.sh 8080
+
+cd evaluation&&.\scripts\evaluation.ps1

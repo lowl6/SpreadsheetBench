@@ -228,7 +228,12 @@ def evaluation(opt):
             'hard_restriction': hard_restriction,
         })
     
-    with open(f'../outputs/eval_{opt.setting}_{opt.model}.json', 'w') as fp:
+    # Create outputs directory if it doesn't exist
+    output_dir = '../outputs'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    with open(f'{output_dir}/eval_{opt.setting}_{opt.model}.json', 'w') as fp:
         json.dump(eval_results, fp, indent=4)
 
 

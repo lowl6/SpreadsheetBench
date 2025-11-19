@@ -125,6 +125,31 @@ The code solution are saved in the ```inference/output``` folder and the result 
 ## Evaluation
 
 The evaluation toolkit can only be used on **Windows** environment.
+
+### For Windows PowerShell Users
+
+1. **Check inference outputs exist**: Ensure the inference step has generated output files in `data/{dataset}/outputs/single_{model}/`
+
+2. **Run evaluation**:
+```powershell
+cd evaluation
+.\scripts\evaluation.ps1
+```
+
+3. **Modify parameters** in `evaluation.ps1`:
+   - `--setting`: single, multi_react_exec, multi_row_exec, or multi_row_react_exec
+   - `--model`: Must match the model name used in inference
+   - `--dataset`: test1, sample_data_200, or all_data_912_v0.1
+
+4. **View results**: Evaluation results will be saved in `outputs/eval_{setting}_{model}.json`
+
+Each result includes:
+- `test_case_results`: Binary results (0/1) for each test case
+- `soft_restriction`: Pass rate = (passed tests) / (total tests)
+- `hard_restriction`: 1 if all tests pass, 0 otherwise
+
+### For Bash Users
+
 Using the following script to get the evaluation result:
 ```
 cd evaluation
