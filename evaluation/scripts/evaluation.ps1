@@ -1,5 +1,5 @@
 # PowerShell script for evaluation
 python evaluation.py `
-    --setting single `
+    --setting sheetcopilot `
     --model glm-4.5-air `
     --dataset test1

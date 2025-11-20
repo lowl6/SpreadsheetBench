@@ -40,10 +40,10 @@ def open_all_spreadsheet_in_dir(dir_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("command line arguments for open spreadsheets.")
-    
     parser.add_argument('--dir_path', type=str, help='the dir path of spreadsheets')
-
     opt = parser.parse_args()
 
-    open_all_spreadsheet_in_dir(opt.dir_path)
+    # 如果未指定 --dir_path，默认遍历 data/test1
+    dir_path = opt.dir_path if opt.dir_path is not None else r'C:\learn\DeepLearning\SpreadsheetBench\data\test1'
+    open_all_spreadsheet_in_dir(dir_path)
 

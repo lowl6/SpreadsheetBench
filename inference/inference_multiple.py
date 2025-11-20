@@ -40,7 +40,7 @@ def gen_solution(opt):
         os.chmod(output_file_path, 0o777)
 
     # check if output file folder of the model exists
-    output_file_path = f'{output_file_path}/single_{opt.model}'
+    output_file_path = f'{output_file_path}/multi_{opt.setting}_{opt.model}'
     if not os.path.exists(output_file_path):
         os.makedirs(output_file_path)
         os.chmod(output_file_path, 0o777)
@@ -50,8 +50,8 @@ def gen_solution(opt):
         
     for data in tqdm(dataset):
         file_name = f"1_{data['spreadsheet_path'].lstrip('spreadsheet/')}_input.xlsx"
-        input_path = f"/mnt/data/{data['spreadsheet_path']}/{file_name}"
-        output_path = f"/mnt/data/outputs/multi_{opt.setting}_{opt.model}/{file_name.rstrip(f'_input.xlsx')}_output.xlsx"
+        input_path = f"/mnt/data/{opt.dataset}/{data['spreadsheet_path']}/{file_name}"
+        output_path = f"/mnt/data/{opt.dataset}/outputs/multi_{opt.setting}_{opt.model}/{file_name.rstrip(f'_input.xlsx')}_output.xlsx"
         find_input_path = f"{dataset_path}/{data['spreadsheet_path']}/{file_name}"
 
         # three setting: row_exec, react_exec, row_react_exec
@@ -107,7 +107,7 @@ def gen_solution(opt):
             'conversation': messages,
             'solution': extract_code(response)
         }
-        with open(f'outputs/conv_multi_{opt.setting}_{opt.model}.jsonl', 'a+') as fp:
+        with open(f'{dataset_path}/outputs/conv_multi_{opt.setting}_{opt.model}.jsonl', 'a+') as fp:
             fp.write(json.dumps(conv_result, ensure_ascii=False) + '\n')
 
 

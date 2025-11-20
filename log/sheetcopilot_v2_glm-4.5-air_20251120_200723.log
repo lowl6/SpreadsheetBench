@@ -1,0 +1,1450 @@
+[2025-11-20 20:07:23] [INFO] [main]
+Starting SheetCopilot v2 with config: Namespace(model='glm-4.5-air', api_key='a3965f9fb7c14f6f8fac15bd076ee71b.omaVemiLXaga5JXg', base_url='https://open.bigmodel.cn/api/paas/v4/', dataset='test1', code_exec_url='http://localhost:8080/execute', conv_id='COPILOT', max_revisions=3, log_dir='../log', enable_timing=True)
+
+[2025-11-20 20:07:23] [INFO] [main]
+Loaded 2 tasks from test1
+
+[2025-11-20 20:07:23] [INFO] [solve_task]
+
+####################################################################################################
+🚀 STARTING TASK 5-33 (multi test cases 1..3)
+####################################################################################################
+
+[2025-11-20 20:07:23] [INFO] [solve_task]
+--- Processing test case 1: /mnt/data/test1/spreadsheet/5-33/1_5-33_input.xlsx -> /mnt/data/test1/outputs/sheetcopilot_glm-4.5-air/1_5-33_output.xlsx
+
+[2025-11-20 20:07:23] [DEBUG] [stage_1_deep_observation]
+[OBSERVATION CODE (PRE-DEFINED)]
+import openpyxl
+from openpyxl.utils import get_column_letter, range_boundaries
+import re
+
+# Phase 1: Global Structure Analysis
+wb = openpyxl.load_workbook('/mnt/data/test1/spreadsheet/5-33/1_5-33_input.xlsx')
+
+print("📊 WORKBOOK STRUCTURE:")
+print(f"All sheets: {wb.sheetnames}")
+print(f"Active sheet: {wb.active.title}")
+
+for sheet_name in wb.sheetnames:
+    ws = wb[sheet_name]
+    print(f"\n--- Sheet: {sheet_name} ---")
+    print(f"Dimensions: {ws.max_row} rows × {ws.max_column} cols")
+    
+    # Find actual data boundaries
+    min_row, max_row = None, None
+    min_col, max_col = None, None
+    for row in range(1, ws.max_row + 1):
+        if any(ws.cell(row, col).value is not None for col in range(1, ws.max_column + 1)):
+            if min_row is None:
+                min_row = row
+            max_row = row
+    for col in range(1, ws.max_column + 1):
+        if any(ws.cell(row, col).value is not None for row in range(1, ws.max_row + 1)):
+            if min_col is None:
+                min_col = col
+            max_col = col
+    
+    if min_row and min_col:
+        print(f"Actual data region: Row {min_row}-{max_row}, Col {min_col}-{max_col}")
+        print(f"Column letters: {get_column_letter(min_col)}-{get_column_letter(max_col)}")
+
+# Phase 2: Target Position Analysis
+target_str = "'Count AD'!B72:AR92"
+sheet_match = re.match(r"'([^']+)'!(.+)", target_str)
+if sheet_match:
+    target_sheet = sheet_match.group(1)
+    target_range = sheet_match.group(2)
+    print(f"\n🎯 TARGET: Sheet '{target_sheet}', Range '{target_range}'")
+    ws = wb[target_sheet]
+else:
+    target_range = target_str
+    ws = wb.active
+    print(f"\n🎯 TARGET: Active sheet, Range '{target_range}'")
+
+print(f"\n📍 TARGET CELL ANALYSIS:")
+try:
+    min_col, min_row, max_col, max_row = range_boundaries(target_range)
+    print(f"Target range: {target_range}, min_row={min_row}, max_row={max_row}, min_col={min_col}, max_col={max_col}")
+    for row in range(min_row, max_row + 1):
+        values = []
+        coords = []
+        for col in range(min_col, max_col + 1):
+            cell = ws.cell(row=row, column=col)
+            values.append(cell.value)
+            coords.append(cell.coordinate)
+        print(f"Row {row}: {coords} = {values}")
+except Exception as e:
+    print(f"Error analyzing target range: {str(e)}")
+    try:
+        cell = ws[target_range]
+        print(f"Single cell {cell.coordinate} = {cell.value}")
+    except Exception as e2:
+        print(f"Error accessing single cell: {str(e2)}")
+
+# Phase 3: Context & Merged Cells
+print(f"\n🔗 MERGED CELLS:")
+merged_ranges = ws.merged_cells.ranges
+for merged in merged_ranges:
+    print(f"Merged: {str(merged)}")
+
+# Phase 4: Pattern Recognition
+print("\n🎯 TASK PATTERN RECOGNITION:")
+print(f"Instruction: How can I count 'AD' sets in Excel 2010, considering only the two rows above and below a given cell, highlight the cell in red if both rows have numbers, and have the result be 0 if both are blank, for a large number of sets (over 600)? Condition-1 If Row 1 & 2 Is A.D Count From     1 To…, Example Resulr in C72:L72 1 to 10. Condition-2 If Row 1 & 2 Has Numbers Just RED in the corosponding Result Cell M72,Z72,AA72,AH72,AI72,AJ72. Conition-3 If it is nothing then = 0.")
+print(f"Instruction type: Sheet-Level Manipulation")
+
+wb.close()
+
+
+[2025-11-20 20:07:23] [DEBUG] [stage_1_deep_observation]
+[OBSERVATION OUTPUT - FULL]
+📊 WORKBOOK STRUCTURE:
+All sheets: ['Count AD']
+Active sheet: Count AD
+
+--- Sheet: Count AD ---
+Dimensions: 92 rows × 44 cols
+Actual data region: Row 1-92, Col 1-44
+Column letters: A-AR
+
+🎯 TARGET: Sheet 'Count AD', Range 'B72:AR92'
+
+📍 TARGET CELL ANALYSIS:
+Target range: B72:AR92, min_row=72, max_row=92, min_col=2, max_col=44
+Row 72: ['B72', 'C72', 'D72', 'E72', 'F72', 'G72', 'H72', 'I72', 'J72', 'K72', 'L72', 'M72', 'N72', 'O72', 'P72', 'Q72', 'R72', 'S72', 'T72', 'U72', 'V72', 'W72', 'X72', 'Y72', 'Z72', 'AA72', 'AB72', 'AC72', 'AD72', 'AE72', 'AF72', 'AG72', 'AH72', 'AI72', 'AJ72', 'AK72', 'AL72', 'AM72', 'AN72', 'AO72', 'AP72', 'AQ72', 'AR72'] = ['Row 1-2', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, None, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, None, None, 1, 2, 3, 4, 5, 6, None, None, None, 1, 2, 3, 4, 0, 0, 0, 0]
+Row 73: ['B73', 'C73', 'D73', 'E73', 'F73', 'G73', 'H73', 'I73', 'J73', 'K73', 'L73', 'M73', 'N73', 'O73', 'P73', 'Q73', 'R73', 'S73', 'T73', 'U73', 'V73', 'W73', 'X73', 'Y73', 'Z73', 'AA73', 'AB73', 'AC73', 'AD73', 'AE73', 'AF73', 'AG73', 'AH73', 'AI73', 'AJ73', 'AK73', 'AL73', 'AM73', 'AN73', 'AO73', 'AP73', 'AQ73', 'AR73'] = ['Row 3-4', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, None, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, None, 1, 2, 0, 0, 0, 0]
+Row 74: ['B74', 'C74', 'D74', 'E74', 'F74', 'G74', 'H74', 'I74', 'J74', 'K74', 'L74', 'M74', 'N74', 'O74', 'P74', 'Q74', 'R74', 'S74', 'T74', 'U74', 'V74', 'W74', 'X74', 'Y74', 'Z74', 'AA74', 'AB74', 'AC74', 'AD74', 'AE74', 'AF74', 'AG74', 'AH74', 'AI74', 'AJ74', 'AK74', 'AL74', 'AM74', 'AN74', 'AO74', 'AP74', 'AQ74', 'AR74'] = ['Row 5-6', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 75: ['B75', 'C75', 'D75', 'E75', 'F75', 'G75', 'H75', 'I75', 'J75', 'K75', 'L75', 'M75', 'N75', 'O75', 'P75', 'Q75', 'R75', 'S75', 'T75', 'U75', 'V75', 'W75', 'X75', 'Y75', 'Z75', 'AA75', 'AB75', 'AC75', 'AD75', 'AE75', 'AF75', 'AG75', 'AH75', 'AI75', 'AJ75', 'AK75', 'AL75', 'AM75', 'AN75', 'AO75', 'AP75', 'AQ75', 'AR75'] = ['Row 7-8', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 76: ['B76', 'C76', 'D76', 'E76', 'F76', 'G76', 'H76', 'I76', 'J76', 'K76', 'L76', 'M76', 'N76', 'O76', 'P76', 'Q76', 'R76', 'S76', 'T76', 'U76', 'V76', 'W76', 'X76', 'Y76', 'Z76', 'AA76', 'AB76', 'AC76', 'AD76', 'AE76', 'AF76', 'AG76', 'AH76', 'AI76', 'AJ76', 'AK76', 'AL76', 'AM76', 'AN76', 'AO76', 'AP76', 'AQ76', 'AR76'] = ['Row 9-10', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 77: ['B77', 'C77', 'D77', 'E77', 'F77', 'G77', 'H77', 'I77', 'J77', 'K77', 'L77', 'M77', 'N77', 'O77', 'P77', 'Q77', 'R77', 'S77', 'T77', 'U77', 'V77', 'W77', 'X77', 'Y77', 'Z77', 'AA77', 'AB77', 'AC77', 'AD77', 'AE77', 'AF77', 'AG77', 'AH77', 'AI77', 'AJ77', 'AK77', 'AL77', 'AM77', 'AN77', 'AO77', 'AP77', 'AQ77', 'AR77'] = ['Row 11-12', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 78: ['B78', 'C78', 'D78', 'E78', 'F78', 'G78', 'H78', 'I78', 'J78', 'K78', 'L78', 'M78', 'N78', 'O78', 'P78', 'Q78', 'R78', 'S78', 'T78', 'U78', 'V78', 'W78', 'X78', 'Y78', 'Z78', 'AA78', 'AB78', 'AC78', 'AD78', 'AE78', 'AF78', 'AG78', 'AH78', 'AI78', 'AJ78', 'AK78', 'AL78', 'AM78', 'AN78', 'AO78', 'AP78', 'AQ78', 'AR78'] = ['Row 13-14', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 79: ['B79', 'C79', 'D79', 'E79', 'F79', 'G79', 'H79', 'I79', 'J79', 'K79', 'L79', 'M79', 'N79', 'O79', 'P79', 'Q79', 'R79', 'S79', 'T79', 'U79', 'V79', 'W79', 'X79', 'Y79', 'Z79', 'AA79', 'AB79', 'AC79', 'AD79', 'AE79', 'AF79', 'AG79', 'AH79', 'AI79', 'AJ79', 'AK79', 'AL79', 'AM79', 'AN79', 'AO79', 'AP79', 'AQ79', 'AR79'] = ['Row 15-16', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 80: ['B80', 'C80', 'D80', 'E80', 'F80', 'G80', 'H80', 'I80', 'J80', 'K80', 'L80', 'M80', 'N80', 'O80', 'P80', 'Q80', 'R80', 'S80', 'T80', 'U80', 'V80', 'W80', 'X80', 'Y80', 'Z80', 'AA80', 'AB80', 'AC80', 'AD80', 'AE80', 'AF80', 'AG80', 'AH80', 'AI80', 'AJ80', 'AK80', 'AL80', 'AM80', 'AN80', 'AO80', 'AP80', 'AQ80', 'AR80'] = ['Row 17-18', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 81: ['B81', 'C81', 'D81', 'E81', 'F81', 'G81', 'H81', 'I81', 'J81', 'K81', 'L81', 'M81', 'N81', 'O81', 'P81', 'Q81', 'R81', 'S81', 'T81', 'U81', 'V81', 'W81', 'X81', 'Y81', 'Z81', 'AA81', 'AB81', 'AC81', 'AD81', 'AE81', 'AF81', 'AG81', 'AH81', 'AI81', 'AJ81', 'AK81', 'AL81', 'AM81', 'AN81', 'AO81', 'AP81', 'AQ81', 'AR81'] = ['Row 19-20', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 82: ['B82', 'C82', 'D82', 'E82', 'F82', 'G82', 'H82', 'I82', 'J82', 'K82', 'L82', 'M82', 'N82', 'O82', 'P82', 'Q82', 'R82', 'S82', 'T82', 'U82', 'V82', 'W82', 'X82', 'Y82', 'Z82', 'AA82', 'AB82', 'AC82', 'AD82', 'AE82', 'AF82', 'AG82', 'AH82', 'AI82', 'AJ82', 'AK82', 'AL82', 'AM82', 'AN82', 'AO82', 'AP82', 'AQ82', 'AR82'] = ['Row 21-22', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 83: ['B83', 'C83', 'D83', 'E83', 'F83', 'G83', 'H83', 'I83', 'J83', 'K83', 'L83', 'M83', 'N83', 'O83', 'P83', 'Q83', 'R83', 'S83', 'T83', 'U83', 'V83', 'W83', 'X83', 'Y83', 'Z83', 'AA83', 'AB83', 'AC83', 'AD83', 'AE83', 'AF83', 'AG83', 'AH83', 'AI83', 'AJ83', 'AK83', 'AL83', 'AM83', 'AN83', 'AO83', 'AP83', 'AQ83', 'AR83'] = ['Row 23-24', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 84: ['B84', 'C84', 'D84', 'E84', 'F84', 'G84', 'H84', 'I84', 'J84', 'K84', 'L84', 'M84', 'N84', 'O84', 'P84', 'Q84', 'R84', 'S84', 'T84', 'U84', 'V84', 'W84', 'X84', 'Y84', 'Z84', 'AA84', 'AB84', 'AC84', 'AD84', 'AE84', 'AF84', 'AG84', 'AH84', 'AI84', 'AJ84', 'AK84', 'AL84', 'AM84', 'AN84', 'AO84', 'AP84', 'AQ84', 'AR84'] = ['Row 25-26', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 85: ['B85', 'C85', 'D85', 'E85', 'F85', 'G85', 'H85', 'I85', 'J85', 'K85', 'L85', 'M85', 'N85', 'O85', 'P85', 'Q85', 'R85', 'S85', 'T85', 'U85', 'V85', 'W85', 'X85', 'Y85', 'Z85', 'AA85', 'AB85', 'AC85', 'AD85', 'AE85', 'AF85', 'AG85', 'AH85', 'AI85', 'AJ85', 'AK85', 'AL85', 'AM85', 'AN85', 'AO85', 'AP85', 'AQ85', 'AR85'] = ['Row 27-28', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 86: ['B86', 'C86', 'D86', 'E86', 'F86', 'G86', 'H86', 'I86', 'J86', 'K86', 'L86', 'M86', 'N86', 'O86', 'P86', 'Q86', 'R86', 'S86', 'T86', 'U86', 'V86', 'W86', 'X86', 'Y86', 'Z86', 'AA86', 'AB86', 'AC86', 'AD86', 'AE86', 'AF86', 'AG86', 'AH86', 'AI86', 'AJ86', 'AK86', 'AL86', 'AM86', 'AN86', 'AO86', 'AP86', 'AQ86', 'AR86'] = ['Row 29-30', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 87: ['B87', 'C87', 'D87', 'E87', 'F87', 'G87', 'H87', 'I87', 'J87', 'K87', 'L87', 'M87', 'N87', 'O87', 'P87', 'Q87', 'R87', 'S87', 'T87', 'U87', 'V87', 'W87', 'X87', 'Y87', 'Z87', 'AA87', 'AB87', 'AC87', 'AD87', 'AE87', 'AF87', 'AG87', 'AH87', 'AI87', 'AJ87', 'AK87', 'AL87', 'AM87', 'AN87', 'AO87', 'AP87', 'AQ87', 'AR87'] = ['Row 31-32', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 88: ['B88', 'C88', 'D88', 'E88', 'F88', 'G88', 'H88', 'I88', 'J88', 'K88', 'L88', 'M88', 'N88', 'O88', 'P88', 'Q88', 'R88', 'S88', 'T88', 'U88', 'V88', 'W88', 'X88', 'Y88', 'Z88', 'AA88', 'AB88', 'AC88', 'AD88', 'AE88', 'AF88', 'AG88', 'AH88', 'AI88', 'AJ88', 'AK88', 'AL88', 'AM88', 'AN88', 'AO88', 'AP88', 'AQ88', 'AR88'] = ['Row 33-34', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 89: ['B89', 'C89', 'D89', 'E89', 'F89', 'G89', 'H89', 'I89', 'J89', 'K89', 'L89', 'M89', 'N89', 'O89', 'P89', 'Q89', 'R89', 'S89', 'T89', 'U89', 'V89', 'W89', 'X89', 'Y89', 'Z89', 'AA89', 'AB89', 'AC89', 'AD89', 'AE89', 'AF89', 'AG89', 'AH89', 'AI89', 'AJ89', 'AK89', 'AL89', 'AM89', 'AN89', 'AO89', 'AP89', 'AQ89', 'AR89'] = ['Row 35-36', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 90: ['B90', 'C90', 'D90', 'E90', 'F90', 'G90', 'H90', 'I90', 'J90', 'K90', 'L90', 'M90', 'N90', 'O90', 'P90', 'Q90', 'R90', 'S90', 'T90', 'U90', 'V90', 'W90', 'X90', 'Y90', 'Z90', 'AA90', 'AB90', 'AC90', 'AD90', 'AE90', 'AF90', 'AG90', 'AH90', 'AI90', 'AJ90', 'AK90', 'AL90', 'AM90', 'AN90', 'AO90', 'AP90', 'AQ90', 'AR90'] = ['Row 37-38', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 91: ['B91', 'C91', 'D91', 'E91', 'F91', 'G91', 'H91', 'I91', 'J91', 'K91', 'L91', 'M91', 'N91', 'O91', 'P91', 'Q91', 'R91', 'S91', 'T91', 'U91', 'V91', 'W91', 'X91', 'Y91', 'Z91', 'AA91', 'AB91', 'AC91', 'AD91', 'AE91', 'AF91', 'AG91', 'AH91', 'AI91', 'AJ91', 'AK91', 'AL91', 'AM91', 'AN91', 'AO91', 'AP91', 'AQ91', 'AR91'] = ['Row 39-40', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 92: ['B92', 'C92', 'D92', 'E92', 'F92', 'G92', 'H92', 'I92', 'J92', 'K92', 'L92', 'M92', 'N92', 'O92', 'P92', 'Q92', 'R92', 'S92', 'T92', 'U92', 'V92', 'W92', 'X92', 'Y92', 'Z92', 'AA92', 'AB92', 'AC92', 'AD92', 'AE92', 'AF92', 'AG92', 'AH92', 'AI92', 'AJ92', 'AK92', 'AL92', 'AM92', 'AN92', 'AO92', 'AP92', 'AQ92', 'AR92'] = ['Row 41-42', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+
+🔗 MERGED CELLS:
+Merged: B27:B28
+Merged: B12:B13
+Merged: B18:B19
+Merged: B42:B43
+Merged: AO1:AR3
+Merged: B39:B40
+Merged: B57:B58
+Merged: B48:B49
+Merged: B60:B61
+Merged: B6:B7
+Merged: B24:B25
+Merged: B15:B16
+Merged: B9:B10
+Merged: B36:B37
+Merged: B33:B34
+Merged: B54:B55
+Merged: B30:B31
+Merged: B45:B46
+Merged: B63:B64
+Merged: A2:B4
+Merged: B51:B52
+Merged: B66:B67
+Merged: N1:Y2
+Merged: C1:L3
+Merged: B21:B22
+
+🎯 TASK PATTERN RECOGNITION:
+Instruction: How can I count 'AD' sets in Excel 2010, considering only the two rows above and below a given cell, highlight the cell in red if both rows have numbers, and have the result be 0 if both are blank, for a large number of sets (over 600)? Condition-1 If Row 1 & 2 Is A.D Count From     1 To…, Example Resulr in C72:L72 1 to 10. Condition-2 If Row 1 & 2 Has Numbers Just RED in the corosponding Result Cell M72,Z72,AA72,AH72,AI72,AJ72. Conition-3 If it is nothing then = 0.
+Instruction type: Sheet-Level Manipulation
+
+
+[2025-11-20 20:07:23] [INFO] [stage_1_deep_observation]
+[OBSERVATION SUMMARY]
+Actual data region: Row 1-92, Col 1-44
+🎯 TARGET: Sheet 'Count AD', Range 'B72:AR92'
+Target range: B72:AR92, min_row=72, max_row=92, min_col=2, max_col=44
+🎯 TASK PATTERN RECOGNITION:
+
+[2025-11-20 20:07:23] [INFO] [log_stage]
+
+====================================================================================================
+🔍 STAGE: 1️⃣ DEEP OBSERVATION [⏱️ 0.12s]
+====================================================================================================
+
+[2025-11-20 20:07:23] [INFO] [log_stage]
+Analyzing non-standard spreadsheet structure
+Task: How can I count 'AD' sets in Excel 2010, considering only the two rows above and below a given cell, highlight the cell in red if both rows have numbers, and have the result be 0 if both are blank, for a large number of sets (over 600)? Condition-1 If Row 1 & 2 Is A.D Count From     1 To…, Example Resulr in C72:L72 1 to 10. Condition-2 If Row 1 & 2 Has Numbers Just RED in the corosponding Result Cell M72,Z72,AA72,AH72,AI72,AJ72. Conition-3 If it is nothing then = 0.
+
+[2025-11-20 20:07:23] [INFO] [solve_task]
+🎯 Test case 1: Generating code with LLM (stages 2-5)
+
+[2025-11-20 20:07:23] [DEBUG] [stage_2_instruction_understanding]
+[UNDERSTANDING PROMPT]
+You are SheetCopilot v2 in INSTRUCTION UNDERSTANDING stage.
+
+
+This is a REAL-WORLD user question from Excel forums. Your task is to extract the CORE requirements.
+
+📝 **ORIGINAL INSTRUCTION** (may be long and informal):
+How can I count 'AD' sets in Excel 2010, considering only the two rows above and below a given cell, highlight the cell in red if both rows have numbers, and have the result be 0 if both are blank, for a large number of sets (over 600)? Condition-1 If Row 1 & 2 Is A.D Count From     1 To…, Example Resulr in C72:L72 1 to 10. Condition-2 If Row 1 & 2 Has Numbers Just RED in the corosponding Result Cell M72,Z72,AA72,AH72,AI72,AJ72. Conition-3 If it is nothing then = 0.
+
+📊 **SPREADSHEET STRUCTURE** (from observation):
+📊 WORKBOOK STRUCTURE:
+All sheets: ['Count AD']
+Active sheet: Count AD
+
+--- Sheet: Count AD ---
+Dimensions: 92 rows × 44 cols
+Actual data region: Row 1-92, Col 1-44
+Column letters: A-AR
+
+🎯 TARGET: Sheet 'Count AD', Range 'B72:AR92'
+
+📍 TARGET CELL ANALYSIS:
+Target range: B72:AR92, min_row=72, max_row=92, min_col=2, max_col=44
+Row 72: ['B72', 'C72', 'D72', 'E72', 'F72', 'G72', 'H72', 'I72', 'J72', 'K72', 'L72', 'M72', 'N72', 'O72', 'P72', 'Q72', 'R72', 'S72', 'T72', 'U72', 'V72', 'W72', 'X72', 'Y72', 'Z72', 'AA72', 'AB72', 'AC72', 'AD72', 'AE72', 'AF72', 'AG72', 'AH72', 'AI72', 'AJ72', 'AK72', 'AL72', 'AM72', 'AN72', 'AO72', 'AP72', 'AQ72', 'AR72'] = ['Row 1-2', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, None, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, None, None, 1, 2, 3, 4, 5, 6, None, None, None, 1, 2, 3, 4, 0, 0, 0, 0]
+Row 73: ['B73', 'C73', 'D73', 'E73', 'F73', 'G73', 'H73', 'I73', 'J73', 'K73', 'L73', 'M73', 'N73', 'O73', 'P73', 'Q73', 'R73', 'S73', 'T73', 'U73', 'V73', 'W73', 'X73', 'Y73', 'Z73',   # Truncate for LLM prompt
+
+🎯 **TASK TYPE**: Sheet-Level Manipulation
+
+**YOUR ANALYSIS TASK**:
+Break down this real-world instruction into structured requirements:
+
+## 1. Core Objective
+What is the PRIMARY goal? (in one clear sentence)
+
+## 2. Input Data Location
+- Which cells/ranges contain the INPUT data?
+- Are there multiple source locations?
+- What format is the input data? (numbers, text, formulas, etc.)
+
+## 3. Output Requirements
+- Where should results be written? (target cells)
+- What format should output be? (formula, value, formatting, etc.)
+- Any specific output constraints?
+
+## 4. Business Logic
+- What calculation/operation is needed?
+- Any conditions or criteria to apply?
+- Special cases or edge cases mentioned?
+
+Provide your structured analysis:
+
+
+[2025-11-20 20:10:53] [DEBUG] [stage_2_instruction_understanding]
+[UNDERSTANDING RESPONSE]
+
+## Structured Analysis of Requirements
+
+### 1. Core Objective
+Automate detection and counting of "AD" sets in Excel 2010 by processing each cell in range B72:AR92 to:
+- Fill sequential numbers (1 to n) in rows with "AD" labels (e.g., "Row 1-2")
+- Highlight cells in red if adjacent rows contain numbers
+- Set cells to 0 if adjacent rows are blank
+- Handle 600+ sets efficiently
+
+### 2. Input Data Location
+- **Primary Input**: Sheet 'Count AD', range B72:AR92
+- **Reference Rows**: 
+  - Two rows above target (rows 70-71 for row 72)
+  - Two rows below target (rows 73-74 for row 72)
+- **Label Data**: Column B (e.g., "Row 1-2", "Row 3-4")
+- **Value Data**: Columns C-AR (numbers/sequences)
+- **Format**: Mixed (labels in B, numbers in C-AR, blanks in some cells)
+
+### 3. Output Requirements
+| Condition | Output Location | Output Format | Special Handling |
+|-----------|----------------|---------------|------------------|
+| **Condition-1** (AD Set) | C72:L72, etc. | Sequential numbers (1 to n) | Based on non-blank count in row below |
+| **Condition-2** (Numbers) | M72, Z72, AA72, etc. | Red highlighting | Apply to specific columns |
+| **Condition-3** (Blank) | All target cells | Numeric 0 | When adjacent rows are blank |
+
+### 4. Business Logic
+#### Condition-1 (AD Set Processing)
+- **Trigger**: Row with "Row X-Y" label in column B
+- **Logic**:
+  1. Count consecutive non-blank cells in row below (e.g., row 73 for row 72)
+  2. Fill current row with sequence 1 to n (n = count)
+  3. **Example**: Row 72 ("Row 1-2") → Fill C72:L72 with 1 to 10 (since row 73 has 10 non-blanks)
+- **Edge Cases**: 
+  - Stop at first blank in reference row
+  - Handle merged cells (e.g., B27:B28)
+
+#### Condition-2 (Number Detection)
+- **Trigger**: Columns M, Z, AA, AH-AJ in target rows
+- **Logic**:
+  1. Check same column in rows (current-2), (current-1), (current+1), (current+2)
+  2. Highlight red if **all four cells contain numbers**
+  3. **Example**: M72 red if cells in M70, M71, M73, M74 are numbers
+- **Edge Cases**: 
+  - Handle merged cells (AO1:AR3)
+  - Skip if reference rows don't exist (e.g., row 72 has no row 70)
+
+#### Condition-3 (Blank Handling)
+- **Trigger**: All cells in B72:AR92
+- **Logic**:
+  1. Check same column in rows (current-2), (current-1), (current+1), (current+2)
+  2. Set to 0 if **all four cells are blank**
+  3. **Example**: C72=0 if C70, C71, C73, C74 are blank
+- **Edge Cases**: 
+  - Partial blanks → leave unchanged
+   - Merged cells → treat as blank if merged range is empty
+
+### Key Implementation Notes
+1. **Efficiency**: Use array formulas to handle 600+ sets
+2. **Edge Handling**: 
+   - Rows 72-73 (missing top rows)
+   - Rows 90-92 (missing bottom rows)
+3. **Merged Cells**: 
+   - Skip merged ranges in calculations
+   - Use `CELL("contents")` for merged values
+4. **Excel 2010 Constraints**: 
+   - Max 7 nested IFs
+   - No dynamic arrays
+   - Use helper columns if needed
+
+### Recommended Formula Structure
+```excel
+// For Condition-1 (Cell C72)
+=IF(B72="Row 1-2", 
+   IF(ISNUMBER(INDEX($A:$AR, 73, COLUMN())), COLUMN()-2, ""),
+   ""
+)
+
+// For Condition-2 (Conditional Formatting)
+=AND(
+   ISNUMBER(INDEX($A:$AR, ROW()-2, COLUMN())),
+   ISNUMBER(INDEX($A:$AR, ROW()-1, COLUMN())),
+   ISNUMBER(INDEX($A:$AR, ROW()+1, COLUMN())),
+   ISNUMBER(INDEX($A:$AR, ROW()+2, COLUMN()))
+)
+
+// For Condition-3 (Cell Value)
+=IF(
+   AND(
+      ISBLANK(INDEX($A:$AR, ROW()-2, COLUMN())),
+      ISBLANK(INDEX($A:$AR, ROW()-1, COLUMN())),
+      ISBLANK(INDEX($A:$AR, ROW()+1, COLUMN())),
+      ISBLANK(INDEX($A:$AR, ROW()+2, COLUMN()))
+   ),
+   0,
+   // Existing value or Condition-1 result
+)
+```
+
+**Note**: This requires adaptation for merged cells and edge cases. VBA may be needed for complex scenarios.
+
+[2025-11-20 20:10:53] [INFO] [log_stage]
+
+====================================================================================================
+🔍 STAGE: 2️⃣ INSTRUCTION UNDERSTANDING [⏱️ 210.01s]
+====================================================================================================
+
+[2025-11-20 20:10:53] [INFO] [log_stage]
+Parsing complex natural language from real user
+
+[2025-11-20 20:10:53] [DEBUG] [stage_3_solution_planning]
+[PLANNING PROMPT]
+You are SheetCopilot v2 in SOLUTION PLANNING stage.
+
+
+📊 **SPREADSHEET FACTS** (non-standard structure):
+📊 WORKBOOK STRUCTURE:
+All sheets: ['Count AD']
+Active sheet: Count AD
+
+--- Sheet: Count AD ---
+Dimensions: 92 rows × 44 cols
+Actual data region: Row 1-92, Col 1-44
+Column letters: A-AR
+
+🎯 TARGET: Sheet 'Count AD', Range 'B72:AR92'
+
+📍 TARGET CELL ANALYSIS:
+Target range: B72:AR92, min_row=72, max_row=92, min_col=2, max_col=44
+Row 72: ['B72', 'C72', 'D72', 'E72', 'F72', 'G72', 'H72', 'I72', 'J72', 'K72', 'L72', 'M72', 'N72', 'O72', 'P72', 'Q72', 'R72', 'S72', 'T72', 'U72', 'V72', 'W72', 'X72', 'Y72', 'Z72', 'AA72', 'AB72', 'AC72', 'AD72', 'AE72', 'AF72', 'AG72', 'AH72', 'AI72', 'AJ72', 'AK72', 'AL72', 'AM72', 'AN72', 'AO72', 'AP72', 'AQ72', 'AR72'] = ['Row 1-2', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, None, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, None, None, 1, 2, 3, 4, 5, 6, None, None, None, 1, 2, 3,  # Truncated
+
+🎯 **UNDERSTOOD REQUIREMENTS**:
+
+## Structured Analysis of Requirements
+
+### 1. Core Objective
+Automate detection and counting of "AD" sets in Excel 2010 by processing each cell in range B72:AR92 to:
+- Fill sequential numbers (1 to n) in rows with "AD" labels (e.g., "Row 1-2")
+- Highlight cells in red if adjacent rows contain numbers
+- Set cells to 0 if adjacent rows are blank
+- Handle 600+ sets efficiently
+
+### 2. Input Data Location
+- **Primary Input**: Sheet 'Count AD', range B72:AR92
+- **Reference Rows**: 
+  - Two rows above target (rows 70-71 for row 72)
+  - Two rows below target (rows 73-74 for row 72)
+- **Label Data**: Column B (e.g., "Row 1-2", "Row 3-4")
+- **Value Data**: Columns C-AR (numbers/sequences)
+- **Format**: Mixed (labels in B, numbers in C-AR, blanks in some cells)
+
+### 3. Output Requirements
+| Condit  # Truncated
+
+📂 **FILE PATHS**:
+- Input: /mnt/data/test1/spreadsheet/5-33/1_5-33_input.xlsx
+- Output: /mnt/data/test1/outputs/sheetcopilot_glm-4.5-air/1_5-33_output.xlsx
+- Target cells: 'Count AD'!B72:AR92
+
+**YOUR PLANNING TASK**:
+Design a step-by-step implementation plan that handles NON-STANDARD spreadsheet formats.
+
+## Implementation Plan Template:
+
+### Step 1: Load and Validate
+```
+- Load workbook from /mnt/data/test1/spreadsheet/5-33/1_5-33_input.xlsx
+- Identify target sheet (handle multi-sheet case)
+- Validate target range 'Count AD'!B72:AR92 exists
+- Check for merged cells or formatting in target area
+```
+
+### Step 2: Locate Input Data (DYNAMIC, not hardcoded!)
+```
+- Based on observation, input data is at: [SPECIFY ACTUAL LOCATION]
+- NOT assuming A1 start!
+- Handle empty cells: [STRATEGY]
+- Account for non-standard table boundaries
+```
+
+### Step 3: Extract and Process
+```
+- Read input data using dynamic references
+- Data type conversions needed: [SPECIFY]
+- Handle edge cases: empty cells, merged cells, formulas vs values
+- Validation checks before processing
+```
+
+### Step 4: Apply Business Logic
+```
+- Core operation: [DESCRIBE CLEARLY]
+- Formula structure (if applicable): [FORMULA]
+- Calculation steps: [ENUMERATE]
+- Condition handling: [IF ANY]
+```
+
+### Step 5: Write Results
+```
+- Target cells: 'Count AD'!B72:AR92
+- Write as: [FORMULA or VALUE or FORMATTED_VALUE]
+- Preserve existing formatting: [YES/NO]
+- Handle multiple target cells: [STRATEGY]
+```
+
+### Step 6: Save and Verify
+```
+- Save to /mnt/data/test1/outputs/sheetcopilot_glm-4.5-air/1_5-33_output.xlsx
+- Verify write succeeded
+- Close workbook properly
+```
+
+## Risk Mitigation:
+- ❌ AVOID: Hardcoding cell references like A1, B2
+- ✅ USE: Dynamic references based on observation results
+- ❌ AVOID: Assuming headers in row 1
+- ✅ USE: Actual header locations from analysis
+- ❌ AVOID: Ignoring empty cells
+- ✅ USE: Explicit null/empty checks
+
+Provide your COMPLETE plan with SPECIFIC cell references based on the observation:
+
+
+[2025-11-20 20:14:12] [DEBUG] [stage_3_solution_planning]
+[PLANNING RESPONSE]
+
+## Implementation Plan for 'AD Sets' Processing in Excel 2010
+
+### Step 1: Load and Validate
+```
+- Load workbook from /mnt/data/test1/spreadsheet/5-33/1_5-33_input.xlsx
+- Activate sheet 'Count AD'
+- Validate target range B72:AR92 exists
+- Verify merged cells don't interfere with target area (confirmed: no merged cells in B72:AR92)
+- Check for data integrity in reference rows (70-74 for row 72, etc.)
+```
+
+### Step 2: Locate Input Data
+```
+- Primary input: Sheet 'Count AD', columns B (labels) and C:AR (values)
+- Reference rows for conditions:
+  - Condition-1: Row below target (e.g., row 73 for row 72)
+  - Condition-2/3: Two rows above and below (rows 70-74 for row 72)
+- Data format: 
+  - Column B: Text labels ("Row X-Y")
+  - Columns C:AR: Numbers and blanks
+- Dynamic range detection: Use UsedRange to identify actual data boundaries
+```
+
+### Step 3: Extract and Process
+```
+1. For Condition-1 (AD Sets):
+   - Identify rows with "Row X-Y" in column B
+   - For each such row (72-91):
+     a. Scan row below (r+1) for contiguous non-blank blocks
+     b. Assign sequential numbers (1 to n) in current row for each block
+     c. Skip if row below doesn't exist (row 92)
+
+2. For Condition-2 (Highlight Red):
+   - Target columns: M(13), Z(26), AA(27), AH(34), AI(35), AJ(36)
+   - Process rows 74-88 (where 4 reference rows exist)
+   - Check cells: (r-2,c), (r-1,c), (r+1,c), (r+2,c)
+   - Apply red font if all four are numeric
+
+3. For Condition-3 (Set to 0):
+   - Process all columns 2-44 (B-AR) in rows 74-88
+   - Check same four reference cells as Condition-2
+   - Set to 0 if all four are blank
+```
+
+### Step 4: Apply Business Logic
+```
+Core operations:
+1. Condition-1 Formula:
+   ```
+   =IF(LEFT(B72,4)="Row ", 
+      IFERROR(IF(COUNTA(INDEX($C:$AR,73,0))>0, 
+                COLUMN()-2, 
+                ""), 
+      "")
+   ```
+   (Adapt for each cell with dynamic row reference)
+
+2. Condition-2 Logic (Conditional Formatting):
+   ```
+   =AND(
+      ISNUMBER(INDEX($A:$AR, ROW()-2, COLUMN())),
+      ISNUMBER(INDEX($A:$AR, ROW()-1, COLUMN())),
+      ISNUMBER(INDEX($A:$AR, ROW()+1, COLUMN())),
+      ISNUMBER(INDEX($A:$AR, ROW()+2, COLUMN()))
+   )
+   ```
+   Applied to specific columns with red font formatting
+
+3. Condition-3 Formula:
+   ```
+   =IF(
+      AND(
+         ISBLANK(INDEX($A:$AR, ROW()-2, COLUMN())),
+         ISBLANK(INDEX($A:$AR, ROW()-1, COLUMN())),
+         ISBLANK(INDEX($A:$AR, ROW()+1, COLUMN())),
+         ISBLANK(INDEX($A:$AR, ROW()+2, COLUMN()))
+      ),
+      0,
+      [Existing Value]
+   )
+   ```
+
+Edge case handling:
+- Rows 72-73: Only process Condition-1 (no reference rows above)
+- Rows 90-92: Only process Condition-1 (no reference rows below)
+- Partial blocks in Condition-1: Stop at first blank in reference row
+- Blank cells: Use ISBLANK/ISNUMBER for reliable checks
+```
+
+### Step 5: Write Results
+```
+- Target cells: 'Count AD'!B72:AR92
+- Write as:
+  - Condition-1: Formulas for sequential numbering
+  - Condition-2: Conditional formatting rules
+  - Condition-3: Formulas with 0 output
+- Preserve existing formatting: Yes (except red highlighting)
+- Handle multiple target cells: Apply formulas/conditionals in bulk
+```
+
+### Step 6: Save and Verify
+```
+- Save to /mnt/data/test1/outputs/sheetcopilot_glm-4.5-air/1_5-33_output.xlsx
+- Verify:
+  1. Formulas populate correctly
+  2. Red highlighting applies to correct cells
+  3. 0 values appear where required
+  4. No data corruption in adjacent cells
+- Close workbook without prompts
+```
+
+## Risk Mitigation
+- ✅ Dynamic references: Use INDEX with relative row/column offsets
+- ✅ Non-standard boundaries: Scan UsedRange before processing
+- ✅ Empty cells: Explicit ISBLANK/ISNUMBER checks
+- ✅ Edge rows: Skip conditions where reference rows don't exist
+- ✅ Merged cells: Avoid operations (none in target range)
+- ✅ Excel 2010 compatibility: Use basic formulas, no array functions
+- ✅ Large dataset: Optimize with batch processing (600+ cells)
+
+## Special Handling Notes
+1. **Condition-1 Block Detection**:
+   - For row 72: Scan row 73 from column C to AR
+   - Identify contiguous number blocks (e.g., C73:L73 = block 1)
+   - Assign 1-10 to C72:L72, then next block gets new sequence
+
+2. **Column Mapping**:
+   ```vba
+   SpecialColumns = Array(13, 26, 27, 34, 35, 36) ' M, Z, AA, AH, AI, AJ
+   ```
+
+3. **Reference Row Validation**:
+   - For row 72: Check rows 70-74 exist before applying conditions
+   - Use error handling for out-of-bound references
+
+This plan efficiently handles all three conditions while respecting Excel 2010 limitations and the non-standard data layout.
+
+[2025-11-20 20:14:12] [INFO] [log_stage]
+
+====================================================================================================
+🔍 STAGE: 3️⃣ SOLUTION PLANNING [⏱️ 198.93s]
+====================================================================================================
+
+[2025-11-20 20:14:12] [INFO] [log_stage]
+Designing robust implementation for non-standard structure
+
+[2025-11-20 20:14:12] [DEBUG] [stage_4_code_implementation]
+[IMPLEMENTATION PROMPT]
+You are SheetCopilot v2 in CODE IMPLEMENTATION stage.
+
+
+📊 **OBSERVED STRUCTURE**:
+📊 WORKBOOK STRUCTURE:
+All sheets: ['Count AD']
+Active sheet: Count AD
+
+--- Sheet: Count AD ---
+Dimensions: 92 rows × 44 cols
+Actual data region: Row 1-92, Col 1-44
+Column letters: A-AR
+
+🎯 TARGET: Sheet 'Count AD', Range 'B72:AR92'
+
+📍 TARGET CELL ANALYSIS:
+Target range: B72:AR92, min_row=72, max_row=92, min_col=2, max_col=44
+Row 72: ['B72', 'C72', 'D72', 'E72', 'F72', 'G72', 'H72', 'I72', 'J72', 'K72', 'L72', 'M72', 'N72', 'O72', 'P72', 'Q72', 'R72', 'S72', 'T72', 'U72', 'V72', 'W72', 'X72', 'Y72', 'Z72', 'AA72', 'AB72', 'AC72', 'AD72', 'AE72', 'AF72', 'AG72', 'AH72', 'AI72', 'AJ72', 'AK72', 'AL72', 'AM72', 'AN72', 'AO72', 'AP72', 'AQ72', 'AR72'] = ['Row 1-2', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, None, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, None, None, 1, 2, 3, 4, 5, 6, None, None, None, 1, 2, 3,  # Truncated
+
+🎯 **REQUIREMENTS SUMMARY**:
+
+## Structured Analysis of Requirements
+
+### 1. Core Objective
+Automate detection and counting of "AD" sets in Excel 2010 by processing each cell in range B72:AR92 to:
+- Fill sequential numbers (1 to n) in rows with "AD" labels (e.g., "Row 1-2")
+- Highlight cells in red if adjacent rows contain numbers
+- Set cells to 0 if adjacent rows are blank
+- Handle 600+ sets efficiently
+
+### 2. Input Data Location
+- **Primary Input**: Sheet 'Count AD', range B72:AR92
+- **Reference Rows**: 
+  - Two rows above target (rows 70-71 for row 72)
+  - Two rows below target (rows 73-74 for row 72)
+- **Label Data**: Column B (e.g., "Row 1-2", "Row 3-4")
+- **Value Data**: Columns C-AR (numbers/sequences)
+- **Format**: Mixed (labels in B, numbers in C-AR, blanks in some cells)
+
+### 3. Output Requirements
+| Condit
+
+📋 **IMPLEMENTATION PLAN**:
+
+## Implementation Plan for 'AD Sets' Processing in Excel 2010
+
+### Step 1: Load and Validate
+```
+- Load workbook from /mnt/data/test1/spreadsheet/5-33/1_5-33_input.xlsx
+- Activate sheet 'Count AD'
+- Validate target range B72:AR92 exists
+- Verify merged cells don't interfere with target area (confirmed: no merged cells in B72:AR92)
+- Check for data integrity in reference rows (70-74 for row 72, etc.)
+```
+
+### Step 2: Locate Input Data
+```
+- Primary input: Sheet 'Count AD', columns B (labels) and C:AR (values)
+- Reference rows for conditions:
+  - Condition-1: Row below target (e.g., row 73 for row 72)
+  - Condition-2/3: Two rows above and below (rows 70-74 for row 72)
+- Data format: 
+  - Column B: Text labels ("Row X-Y")
+  - Columns C:AR: Numbers and blanks
+- Dynamic range detection: Use UsedRange to identify actual data boundaries
+```
+
+### Step 3: Extract and Process
+```
+1. For Condition-1 (AD Sets):
+   - Identify rows with "Row X-Y" in column B
+   - For each such row (72-91):
+     a. Scan row below (r+1) for contiguous non-blank blocks
+     b. Assign sequential numbers (1 to n) in current row for each block
+     c. Skip if row below doesn't exist (row 92)
+
+2. For Condition-2 (Highlight Red):
+   - Target columns: M(13), Z(26), AA(27), AH(34), AI(35), AJ(36)
+   - Process rows 74-88 (where 4 reference rows exist)
+   - Check cells: (r-2,c), (r-1,c), (r+1,c), (r+2,c)
+   - Apply red font if all four are numeric
+
+3. For Condition-3 (Set to 0):
+   - Process all columns 2-44 (B-AR) in rows 74-88
+   - Check same four reference cells as Condition-2
+   - Set to 0 if all four are blank
+```
+
+### Step 4: Apply Business Logic
+```
+Core operations:
+1. Condition-1 Formula:
+   ```
+   =IF(LEFT(B72,4)="Row ", 
+      IFERROR(IF(COUNTA(INDEX($C:$AR,73,0))>0, 
+                COLUMN()-2, 
+                ""), 
+      "")
+   ```
+   (Adapt for each cell with dynamic row reference)
+
+2. Condition-2 Logic (Conditional Formatting):
+   ```
+   =AND(
+      ISNUMBER(INDEX($A:$AR, ROW()-2, COLUMN())),
+      ISNUMBER(INDEX($A:$AR, ROW()-1, COLUMN())),
+      ISNUMBER(INDEX($A:$AR, ROW()+1, COLUMN())),
+      ISNUMBER(INDEX($A:$AR, ROW()+2, COLUMN()))
+   )
+   ```
+   Applied to specific columns with red font formatting
+
+3. Condition-3 Formula:
+   ```
+   =IF(
+      AND(
+         ISBLANK(INDEX($A:$AR, ROW()-2, COLUMN())),
+         ISBLANK(INDEX($A:$AR, ROW()-1, COLUMN())),
+         ISBLANK(INDEX($A:$AR, ROW()+1, COLUMN())),
+         ISBLANK(INDEX($A:$AR, ROW()+2, COLUMN()))
+      ),
+      0,
+      [Existing Value]
+   )
+   ```
+
+Edge case handling:
+- Rows 72-73: Only process Condition-1 (no reference rows above)
+- Rows 90-92: Only process Condition-1 (no reference rows below)
+- Partial blocks in Condition-1: Stop at first blank in reference row
+- Blank cells: Use ISBLANK/ISNUMBER for reliable checks
+```
+
+### Step 5: Write Results
+```
+- Target cells: 'Count AD'!B72:AR92
+- Write as:
+  - Condition-1: Formulas for sequential numbering
+  - Condition-2: Conditional formatting rules
+  - Condition-3: Formulas with 0 output
+- Preserve existing formatting: Yes (except red highlighting)
+- Handle multiple target cells: Apply formulas/conditionals in bulk
+```
+
+### Step 6: Save and Verify
+```
+- Save to /mnt/data/test1/outputs/sheetcopilot_glm-4.5-air/1_5-33_output.xlsx
+- Verify:
+  1. Formulas populate correctly
+  2. Red highlighting applies to correct cells
+  3. 0 values appear where required
+  4. No data corruption in adjacent cells
+- Close workbook without prompts
+```
+
+## Risk Mitigation
+- ✅ Dynamic references: Use INDEX with relative row/column offsets
+- ✅ Non-standard boundaries: Scan UsedRange before processing
+- ✅ Empty cells: Explicit ISBLANK/ISNUMBER checks
+- ✅ Edge rows: Skip conditions where reference rows don't exist
+- ✅ Merged cells: Avoid operations (none in target range)
+- ✅ Excel 2010 compatibility: Use basic formulas, no array functions
+- ✅ Large dataset: Optimize with batch processing (600+ cells)
+
+## Special Handling Notes
+1. **Condition-1 Block Detection**:
+   - For row 72: Scan row 73 from column C to AR
+   - Identify contiguous number blocks (e.g., C73:L73 = block 1)
+   - Assign 1-10 to C72:L72, then next block gets new sequence
+
+2. **Column Mapping**:
+   ```vba
+   SpecialColumns = Array(13, 26, 27, 34, 35, 36) ' M, Z, AA, AH, AI, AJ
+   ```
+
+3. **Reference Row Validation**:
+   - For row 72: Check rows 70-74 exist before applying conditions
+   - Use error handling for out-of-bound references
+
+This plan efficiently handles all three conditions while respecting Excel 2010 limitations and the non-standard data layout.
+
+**YOUR CODING TASK**:
+Write COMPLETE, PRODUCTION-READY Python code following the plan above.
+
+**CRITICAL REQUIREMENTS**:
+✅ Use openpyxl library (already installed in Docker environment)
+✅ NO hardcoded cell references - use DYNAMIC references from observation
+✅ Handle empty cells explicitly (check `if cell.value is not None`)
+✅ Include try-except for robust error handling
+✅ Use actual sheet names and cell ranges from observation
+✅ Support non-standard table positions
+✅ Add print() statements for debugging
+✅ Load from: /mnt/data/test1/spreadsheet/5-33/1_5-33_input.xlsx
+✅ Save to: /mnt/data/test1/outputs/sheetcopilot_glm-4.5-air/1_5-33_output.xlsx
+✅ Target cells: 'Count AD'!B72:AR92
+
+⚠️ **CRITICAL: AVOID CIRCULAR REFERENCES!**
+❌ DO NOT write formulas that reference the target cell itself
+❌ DO NOT create circular dependencies between target cells
+❌ Example: If target is H3, do NOT use H3 in the formula
+✅ Only reference INPUT data cells, never OUTPUT target cells
+
+
+**CODE TEMPLATE** (adapt to your specific task):
+```python
+import openpyxl
+from openpyxl.utils import get_column_letter, column_index_from_string
+import re
+
+try:
+    # 1. Load workbook
+    print("Loading workbook...")
+    wb = openpyxl.load_workbook('/mnt/data/test1/spreadsheet/5-33/1_5-33_input.xlsx')
+    
+    # 2. Get target sheet (handle sheet name in answer_position)
+    target_str = "'Count AD'!B72:AR92"
+    sheet_match = re.match(r"'([^']+)'!(.+)", target_str)
+    if sheet_match:
+        sheet_name = sheet_match.group(1)
+        target_range = sheet_match.group(2)
+        ws = wb[sheet_name]
+        print(f"Working on sheet: {sheet_name}")
+    else:
+        ws = wb.active
+        target_range = target_str
+        print(f"Working on active sheet: {ws.title}")
+    
+    # 3. Parse target range (e.g., "A1:B10" or "C5")
+    # Implement based on your plan
+    
+    # 4. Locate input data (DYNAMIC - from observation!)
+    # Based on observation results, input data is at: [FILL FROM OBSERVATION]
+    
+    # 5. Read input data with null checks
+    # for cell in ws[...]:
+    #     if cell.value is not None:
+    #         ...
+    
+    # 6. Process data (implement business logic)
+    # [YOUR CORE LOGIC HERE]
+    
+    # 7. Write results to target cells
+    # Handle both single cell and range cases
+    
+    # 8. Save output
+    wb.save('/mnt/data/test1/outputs/sheetcopilot_glm-4.5-air/1_5-33_output.xlsx')
+    wb.close()
+    print(f"✅ Successfully saved to /mnt/data/test1/outputs/sheetcopilot_glm-4.5-air/1_5-33_output.xlsx")
+    
+except Exception as e:
+    print(f"❌ Error: {str(e)}")
+    import traceback
+    traceback.print_exc()
+```
+
+**Generate COMPLETE implementation code now:**
+
+
+[2025-11-20 20:24:15] [ERROR] [solve_task]
+❌ Exception in test case 1: Error code: 429 - {'error': {'code': '1305', 'message': '当前API请求过多，请稍后重试。'}}
+
+[2025-11-20 20:24:15] [INFO] [solve_task]
+--- Processing test case 2: /mnt/data/test1/spreadsheet/5-33/2_5-33_input.xlsx -> /mnt/data/test1/outputs/sheetcopilot_glm-4.5-air/2_5-33_output.xlsx
+
+[2025-11-20 20:24:15] [DEBUG] [stage_1_deep_observation]
+[OBSERVATION CODE (PRE-DEFINED)]
+import openpyxl
+from openpyxl.utils import get_column_letter, range_boundaries
+import re
+
+# Phase 1: Global Structure Analysis
+wb = openpyxl.load_workbook('/mnt/data/test1/spreadsheet/5-33/2_5-33_input.xlsx')
+
+print("📊 WORKBOOK STRUCTURE:")
+print(f"All sheets: {wb.sheetnames}")
+print(f"Active sheet: {wb.active.title}")
+
+for sheet_name in wb.sheetnames:
+    ws = wb[sheet_name]
+    print(f"\n--- Sheet: {sheet_name} ---")
+    print(f"Dimensions: {ws.max_row} rows × {ws.max_column} cols")
+    
+    # Find actual data boundaries
+    min_row, max_row = None, None
+    min_col, max_col = None, None
+    for row in range(1, ws.max_row + 1):
+        if any(ws.cell(row, col).value is not None for col in range(1, ws.max_column + 1)):
+            if min_row is None:
+                min_row = row
+            max_row = row
+    for col in range(1, ws.max_column + 1):
+        if any(ws.cell(row, col).value is not None for row in range(1, ws.max_row + 1)):
+            if min_col is None:
+                min_col = col
+            max_col = col
+    
+    if min_row and min_col:
+        print(f"Actual data region: Row {min_row}-{max_row}, Col {min_col}-{max_col}")
+        print(f"Column letters: {get_column_letter(min_col)}-{get_column_letter(max_col)}")
+
+# Phase 2: Target Position Analysis
+target_str = "'Count AD'!B72:AR92"
+sheet_match = re.match(r"'([^']+)'!(.+)", target_str)
+if sheet_match:
+    target_sheet = sheet_match.group(1)
+    target_range = sheet_match.group(2)
+    print(f"\n🎯 TARGET: Sheet '{target_sheet}', Range '{target_range}'")
+    ws = wb[target_sheet]
+else:
+    target_range = target_str
+    ws = wb.active
+    print(f"\n🎯 TARGET: Active sheet, Range '{target_range}'")
+
+print(f"\n📍 TARGET CELL ANALYSIS:")
+try:
+    min_col, min_row, max_col, max_row = range_boundaries(target_range)
+    print(f"Target range: {target_range}, min_row={min_row}, max_row={max_row}, min_col={min_col}, max_col={max_col}")
+    for row in range(min_row, max_row + 1):
+        values = []
+        coords = []
+        for col in range(min_col, max_col + 1):
+            cell = ws.cell(row=row, column=col)
+            values.append(cell.value)
+            coords.append(cell.coordinate)
+        print(f"Row {row}: {coords} = {values}")
+except Exception as e:
+    print(f"Error analyzing target range: {str(e)}")
+    try:
+        cell = ws[target_range]
+        print(f"Single cell {cell.coordinate} = {cell.value}")
+    except Exception as e2:
+        print(f"Error accessing single cell: {str(e2)}")
+
+# Phase 3: Context & Merged Cells
+print(f"\n🔗 MERGED CELLS:")
+merged_ranges = ws.merged_cells.ranges
+for merged in merged_ranges:
+    print(f"Merged: {str(merged)}")
+
+# Phase 4: Pattern Recognition
+print("\n🎯 TASK PATTERN RECOGNITION:")
+print(f"Instruction: How can I count 'AD' sets in Excel 2010, considering only the two rows above and below a given cell, highlight the cell in red if both rows have numbers, and have the result be 0 if both are blank, for a large number of sets (over 600)? Condition-1 If Row 1 & 2 Is A.D Count From     1 To…, Example Resulr in C72:L72 1 to 10. Condition-2 If Row 1 & 2 Has Numbers Just RED in the corosponding Result Cell M72,Z72,AA72,AH72,AI72,AJ72. Conition-3 If it is nothing then = 0.")
+print(f"Instruction type: Sheet-Level Manipulation")
+
+wb.close()
+
+
+[2025-11-20 20:24:17] [DEBUG] [stage_1_deep_observation]
+[OBSERVATION OUTPUT - FULL]
+📊 WORKBOOK STRUCTURE:
+All sheets: ['Count AD']
+Active sheet: Count AD
+
+--- Sheet: Count AD ---
+Dimensions: 92 rows × 44 cols
+Actual data region: Row 1-92, Col 1-44
+Column letters: A-AR
+
+🎯 TARGET: Sheet 'Count AD', Range 'B72:AR92'
+
+📍 TARGET CELL ANALYSIS:
+Target range: B72:AR92, min_row=72, max_row=92, min_col=2, max_col=44
+Row 72: ['B72', 'C72', 'D72', 'E72', 'F72', 'G72', 'H72', 'I72', 'J72', 'K72', 'L72', 'M72', 'N72', 'O72', 'P72', 'Q72', 'R72', 'S72', 'T72', 'U72', 'V72', 'W72', 'X72', 'Y72', 'Z72', 'AA72', 'AB72', 'AC72', 'AD72', 'AE72', 'AF72', 'AG72', 'AH72', 'AI72', 'AJ72', 'AK72', 'AL72', 'AM72', 'AN72', 'AO72', 'AP72', 'AQ72', 'AR72'] = ['Row 1-2', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, None, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, None, None, 1, 2, 3, 4, 5, 6, None, None, None, 1, 2, 3, 4, 0, 0, 0, 0]
+Row 73: ['B73', 'C73', 'D73', 'E73', 'F73', 'G73', 'H73', 'I73', 'J73', 'K73', 'L73', 'M73', 'N73', 'O73', 'P73', 'Q73', 'R73', 'S73', 'T73', 'U73', 'V73', 'W73', 'X73', 'Y73', 'Z73', 'AA73', 'AB73', 'AC73', 'AD73', 'AE73', 'AF73', 'AG73', 'AH73', 'AI73', 'AJ73', 'AK73', 'AL73', 'AM73', 'AN73', 'AO73', 'AP73', 'AQ73', 'AR73'] = ['Row 3-4', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, None, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, None, 1, 2, 0, 0, 0, 0]
+Row 74: ['B74', 'C74', 'D74', 'E74', 'F74', 'G74', 'H74', 'I74', 'J74', 'K74', 'L74', 'M74', 'N74', 'O74', 'P74', 'Q74', 'R74', 'S74', 'T74', 'U74', 'V74', 'W74', 'X74', 'Y74', 'Z74', 'AA74', 'AB74', 'AC74', 'AD74', 'AE74', 'AF74', 'AG74', 'AH74', 'AI74', 'AJ74', 'AK74', 'AL74', 'AM74', 'AN74', 'AO74', 'AP74', 'AQ74', 'AR74'] = ['Row 5-6', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 75: ['B75', 'C75', 'D75', 'E75', 'F75', 'G75', 'H75', 'I75', 'J75', 'K75', 'L75', 'M75', 'N75', 'O75', 'P75', 'Q75', 'R75', 'S75', 'T75', 'U75', 'V75', 'W75', 'X75', 'Y75', 'Z75', 'AA75', 'AB75', 'AC75', 'AD75', 'AE75', 'AF75', 'AG75', 'AH75', 'AI75', 'AJ75', 'AK75', 'AL75', 'AM75', 'AN75', 'AO75', 'AP75', 'AQ75', 'AR75'] = ['Row 7-8', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 76: ['B76', 'C76', 'D76', 'E76', 'F76', 'G76', 'H76', 'I76', 'J76', 'K76', 'L76', 'M76', 'N76', 'O76', 'P76', 'Q76', 'R76', 'S76', 'T76', 'U76', 'V76', 'W76', 'X76', 'Y76', 'Z76', 'AA76', 'AB76', 'AC76', 'AD76', 'AE76', 'AF76', 'AG76', 'AH76', 'AI76', 'AJ76', 'AK76', 'AL76', 'AM76', 'AN76', 'AO76', 'AP76', 'AQ76', 'AR76'] = ['Row 9-10', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 77: ['B77', 'C77', 'D77', 'E77', 'F77', 'G77', 'H77', 'I77', 'J77', 'K77', 'L77', 'M77', 'N77', 'O77', 'P77', 'Q77', 'R77', 'S77', 'T77', 'U77', 'V77', 'W77', 'X77', 'Y77', 'Z77', 'AA77', 'AB77', 'AC77', 'AD77', 'AE77', 'AF77', 'AG77', 'AH77', 'AI77', 'AJ77', 'AK77', 'AL77', 'AM77', 'AN77', 'AO77', 'AP77', 'AQ77', 'AR77'] = ['Row 11-12', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 78: ['B78', 'C78', 'D78', 'E78', 'F78', 'G78', 'H78', 'I78', 'J78', 'K78', 'L78', 'M78', 'N78', 'O78', 'P78', 'Q78', 'R78', 'S78', 'T78', 'U78', 'V78', 'W78', 'X78', 'Y78', 'Z78', 'AA78', 'AB78', 'AC78', 'AD78', 'AE78', 'AF78', 'AG78', 'AH78', 'AI78', 'AJ78', 'AK78', 'AL78', 'AM78', 'AN78', 'AO78', 'AP78', 'AQ78', 'AR78'] = ['Row 13-14', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 79: ['B79', 'C79', 'D79', 'E79', 'F79', 'G79', 'H79', 'I79', 'J79', 'K79', 'L79', 'M79', 'N79', 'O79', 'P79', 'Q79', 'R79', 'S79', 'T79', 'U79', 'V79', 'W79', 'X79', 'Y79', 'Z79', 'AA79', 'AB79', 'AC79', 'AD79', 'AE79', 'AF79', 'AG79', 'AH79', 'AI79', 'AJ79', 'AK79', 'AL79', 'AM79', 'AN79', 'AO79', 'AP79', 'AQ79', 'AR79'] = ['Row 15-16', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 80: ['B80', 'C80', 'D80', 'E80', 'F80', 'G80', 'H80', 'I80', 'J80', 'K80', 'L80', 'M80', 'N80', 'O80', 'P80', 'Q80', 'R80', 'S80', 'T80', 'U80', 'V80', 'W80', 'X80', 'Y80', 'Z80', 'AA80', 'AB80', 'AC80', 'AD80', 'AE80', 'AF80', 'AG80', 'AH80', 'AI80', 'AJ80', 'AK80', 'AL80', 'AM80', 'AN80', 'AO80', 'AP80', 'AQ80', 'AR80'] = ['Row 17-18', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 81: ['B81', 'C81', 'D81', 'E81', 'F81', 'G81', 'H81', 'I81', 'J81', 'K81', 'L81', 'M81', 'N81', 'O81', 'P81', 'Q81', 'R81', 'S81', 'T81', 'U81', 'V81', 'W81', 'X81', 'Y81', 'Z81', 'AA81', 'AB81', 'AC81', 'AD81', 'AE81', 'AF81', 'AG81', 'AH81', 'AI81', 'AJ81', 'AK81', 'AL81', 'AM81', 'AN81', 'AO81', 'AP81', 'AQ81', 'AR81'] = ['Row 19-20', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 82: ['B82', 'C82', 'D82', 'E82', 'F82', 'G82', 'H82', 'I82', 'J82', 'K82', 'L82', 'M82', 'N82', 'O82', 'P82', 'Q82', 'R82', 'S82', 'T82', 'U82', 'V82', 'W82', 'X82', 'Y82', 'Z82', 'AA82', 'AB82', 'AC82', 'AD82', 'AE82', 'AF82', 'AG82', 'AH82', 'AI82', 'AJ82', 'AK82', 'AL82', 'AM82', 'AN82', 'AO82', 'AP82', 'AQ82', 'AR82'] = ['Row 21-22', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 83: ['B83', 'C83', 'D83', 'E83', 'F83', 'G83', 'H83', 'I83', 'J83', 'K83', 'L83', 'M83', 'N83', 'O83', 'P83', 'Q83', 'R83', 'S83', 'T83', 'U83', 'V83', 'W83', 'X83', 'Y83', 'Z83', 'AA83', 'AB83', 'AC83', 'AD83', 'AE83', 'AF83', 'AG83', 'AH83', 'AI83', 'AJ83', 'AK83', 'AL83', 'AM83', 'AN83', 'AO83', 'AP83', 'AQ83', 'AR83'] = ['Row 23-24', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 84: ['B84', 'C84', 'D84', 'E84', 'F84', 'G84', 'H84', 'I84', 'J84', 'K84', 'L84', 'M84', 'N84', 'O84', 'P84', 'Q84', 'R84', 'S84', 'T84', 'U84', 'V84', 'W84', 'X84', 'Y84', 'Z84', 'AA84', 'AB84', 'AC84', 'AD84', 'AE84', 'AF84', 'AG84', 'AH84', 'AI84', 'AJ84', 'AK84', 'AL84', 'AM84', 'AN84', 'AO84', 'AP84', 'AQ84', 'AR84'] = ['Row 25-26', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 85: ['B85', 'C85', 'D85', 'E85', 'F85', 'G85', 'H85', 'I85', 'J85', 'K85', 'L85', 'M85', 'N85', 'O85', 'P85', 'Q85', 'R85', 'S85', 'T85', 'U85', 'V85', 'W85', 'X85', 'Y85', 'Z85', 'AA85', 'AB85', 'AC85', 'AD85', 'AE85', 'AF85', 'AG85', 'AH85', 'AI85', 'AJ85', 'AK85', 'AL85', 'AM85', 'AN85', 'AO85', 'AP85', 'AQ85', 'AR85'] = ['Row 27-28', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 86: ['B86', 'C86', 'D86', 'E86', 'F86', 'G86', 'H86', 'I86', 'J86', 'K86', 'L86', 'M86', 'N86', 'O86', 'P86', 'Q86', 'R86', 'S86', 'T86', 'U86', 'V86', 'W86', 'X86', 'Y86', 'Z86', 'AA86', 'AB86', 'AC86', 'AD86', 'AE86', 'AF86', 'AG86', 'AH86', 'AI86', 'AJ86', 'AK86', 'AL86', 'AM86', 'AN86', 'AO86', 'AP86', 'AQ86', 'AR86'] = ['Row 29-30', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 87: ['B87', 'C87', 'D87', 'E87', 'F87', 'G87', 'H87', 'I87', 'J87', 'K87', 'L87', 'M87', 'N87', 'O87', 'P87', 'Q87', 'R87', 'S87', 'T87', 'U87', 'V87', 'W87', 'X87', 'Y87', 'Z87', 'AA87', 'AB87', 'AC87', 'AD87', 'AE87', 'AF87', 'AG87', 'AH87', 'AI87', 'AJ87', 'AK87', 'AL87', 'AM87', 'AN87', 'AO87', 'AP87', 'AQ87', 'AR87'] = ['Row 31-32', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 88: ['B88', 'C88', 'D88', 'E88', 'F88', 'G88', 'H88', 'I88', 'J88', 'K88', 'L88', 'M88', 'N88', 'O88', 'P88', 'Q88', 'R88', 'S88', 'T88', 'U88', 'V88', 'W88', 'X88', 'Y88', 'Z88', 'AA88', 'AB88', 'AC88', 'AD88', 'AE88', 'AF88', 'AG88', 'AH88', 'AI88', 'AJ88', 'AK88', 'AL88', 'AM88', 'AN88', 'AO88', 'AP88', 'AQ88', 'AR88'] = ['Row 33-34', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 89: ['B89', 'C89', 'D89', 'E89', 'F89', 'G89', 'H89', 'I89', 'J89', 'K89', 'L89', 'M89', 'N89', 'O89', 'P89', 'Q89', 'R89', 'S89', 'T89', 'U89', 'V89', 'W89', 'X89', 'Y89', 'Z89', 'AA89', 'AB89', 'AC89', 'AD89', 'AE89', 'AF89', 'AG89', 'AH89', 'AI89', 'AJ89', 'AK89', 'AL89', 'AM89', 'AN89', 'AO89', 'AP89', 'AQ89', 'AR89'] = ['Row 35-36', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 90: ['B90', 'C90', 'D90', 'E90', 'F90', 'G90', 'H90', 'I90', 'J90', 'K90', 'L90', 'M90', 'N90', 'O90', 'P90', 'Q90', 'R90', 'S90', 'T90', 'U90', 'V90', 'W90', 'X90', 'Y90', 'Z90', 'AA90', 'AB90', 'AC90', 'AD90', 'AE90', 'AF90', 'AG90', 'AH90', 'AI90', 'AJ90', 'AK90', 'AL90', 'AM90', 'AN90', 'AO90', 'AP90', 'AQ90', 'AR90'] = ['Row 37-38', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 91: ['B91', 'C91', 'D91', 'E91', 'F91', 'G91', 'H91', 'I91', 'J91', 'K91', 'L91', 'M91', 'N91', 'O91', 'P91', 'Q91', 'R91', 'S91', 'T91', 'U91', 'V91', 'W91', 'X91', 'Y91', 'Z91', 'AA91', 'AB91', 'AC91', 'AD91', 'AE91', 'AF91', 'AG91', 'AH91', 'AI91', 'AJ91', 'AK91', 'AL91', 'AM91', 'AN91', 'AO91', 'AP91', 'AQ91', 'AR91'] = ['Row 39-40', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 92: ['B92', 'C92', 'D92', 'E92', 'F92', 'G92', 'H92', 'I92', 'J92', 'K92', 'L92', 'M92', 'N92', 'O92', 'P92', 'Q92', 'R92', 'S92', 'T92', 'U92', 'V92', 'W92', 'X92', 'Y92', 'Z92', 'AA92', 'AB92', 'AC92', 'AD92', 'AE92', 'AF92', 'AG92', 'AH92', 'AI92', 'AJ92', 'AK92', 'AL92', 'AM92', 'AN92', 'AO92', 'AP92', 'AQ92', 'AR92'] = ['Row 41-42', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+
+🔗 MERGED CELLS:
+Merged: B27:B28
+Merged: B12:B13
+Merged: B18:B19
+Merged: B42:B43
+Merged: AO1:AR3
+Merged: B39:B40
+Merged: B57:B58
+Merged: B48:B49
+Merged: B60:B61
+Merged: B6:B7
+Merged: B24:B25
+Merged: B15:B16
+Merged: B9:B10
+Merged: B36:B37
+Merged: B33:B34
+Merged: B54:B55
+Merged: B30:B31
+Merged: B45:B46
+Merged: B63:B64
+Merged: A2:B4
+Merged: B51:B52
+Merged: B66:B67
+Merged: N1:Y2
+Merged: C1:L3
+Merged: B21:B22
+
+🎯 TASK PATTERN RECOGNITION:
+Instruction: How can I count 'AD' sets in Excel 2010, considering only the two rows above and below a given cell, highlight the cell in red if both rows have numbers, and have the result be 0 if both are blank, for a large number of sets (over 600)? Condition-1 If Row 1 & 2 Is A.D Count From     1 To…, Example Resulr in C72:L72 1 to 10. Condition-2 If Row 1 & 2 Has Numbers Just RED in the corosponding Result Cell M72,Z72,AA72,AH72,AI72,AJ72. Conition-3 If it is nothing then = 0.
+Instruction type: Sheet-Level Manipulation
+
+
+[2025-11-20 20:24:17] [INFO] [stage_1_deep_observation]
+[OBSERVATION SUMMARY]
+Actual data region: Row 1-92, Col 1-44
+🎯 TARGET: Sheet 'Count AD', Range 'B72:AR92'
+Target range: B72:AR92, min_row=72, max_row=92, min_col=2, max_col=44
+🎯 TASK PATTERN RECOGNITION:
+
+[2025-11-20 20:24:17] [INFO] [log_stage]
+
+====================================================================================================
+🔍 STAGE: 1️⃣ DEEP OBSERVATION [⏱️ 2.60s]
+====================================================================================================
+
+[2025-11-20 20:24:17] [INFO] [log_stage]
+Analyzing non-standard spreadsheet structure
+Task: How can I count 'AD' sets in Excel 2010, considering only the two rows above and below a given cell, highlight the cell in red if both rows have numbers, and have the result be 0 if both are blank, for a large number of sets (over 600)? Condition-1 If Row 1 & 2 Is A.D Count From     1 To…, Example Resulr in C72:L72 1 to 10. Condition-2 If Row 1 & 2 Has Numbers Just RED in the corosponding Result Cell M72,Z72,AA72,AH72,AI72,AJ72. Conition-3 If it is nothing then = 0.
+
+[2025-11-20 20:24:17] [INFO] [solve_task]
+♻️ Test case 2: Reusing code generated from test case 1 (skipping LLM calls)
+
+[2025-11-20 20:24:17] [ERROR] [solve_task]
+❌ Exception in test case 2: 'NoneType' object has no attribute 'get'
+
+[2025-11-20 20:24:17] [INFO] [solve_task]
+--- Processing test case 3: /mnt/data/test1/spreadsheet/5-33/3_5-33_input.xlsx -> /mnt/data/test1/outputs/sheetcopilot_glm-4.5-air/3_5-33_output.xlsx
+
+[2025-11-20 20:24:17] [DEBUG] [stage_1_deep_observation]
+[OBSERVATION CODE (PRE-DEFINED)]
+import openpyxl
+from openpyxl.utils import get_column_letter, range_boundaries
+import re
+
+# Phase 1: Global Structure Analysis
+wb = openpyxl.load_workbook('/mnt/data/test1/spreadsheet/5-33/3_5-33_input.xlsx')
+
+print("📊 WORKBOOK STRUCTURE:")
+print(f"All sheets: {wb.sheetnames}")
+print(f"Active sheet: {wb.active.title}")
+
+for sheet_name in wb.sheetnames:
+    ws = wb[sheet_name]
+    print(f"\n--- Sheet: {sheet_name} ---")
+    print(f"Dimensions: {ws.max_row} rows × {ws.max_column} cols")
+    
+    # Find actual data boundaries
+    min_row, max_row = None, None
+    min_col, max_col = None, None
+    for row in range(1, ws.max_row + 1):
+        if any(ws.cell(row, col).value is not None for col in range(1, ws.max_column + 1)):
+            if min_row is None:
+                min_row = row
+            max_row = row
+    for col in range(1, ws.max_column + 1):
+        if any(ws.cell(row, col).value is not None for row in range(1, ws.max_row + 1)):
+            if min_col is None:
+                min_col = col
+            max_col = col
+    
+    if min_row and min_col:
+        print(f"Actual data region: Row {min_row}-{max_row}, Col {min_col}-{max_col}")
+        print(f"Column letters: {get_column_letter(min_col)}-{get_column_letter(max_col)}")
+
+# Phase 2: Target Position Analysis
+target_str = "'Count AD'!B72:AR92"
+sheet_match = re.match(r"'([^']+)'!(.+)", target_str)
+if sheet_match:
+    target_sheet = sheet_match.group(1)
+    target_range = sheet_match.group(2)
+    print(f"\n🎯 TARGET: Sheet '{target_sheet}', Range '{target_range}'")
+    ws = wb[target_sheet]
+else:
+    target_range = target_str
+    ws = wb.active
+    print(f"\n🎯 TARGET: Active sheet, Range '{target_range}'")
+
+print(f"\n📍 TARGET CELL ANALYSIS:")
+try:
+    min_col, min_row, max_col, max_row = range_boundaries(target_range)
+    print(f"Target range: {target_range}, min_row={min_row}, max_row={max_row}, min_col={min_col}, max_col={max_col}")
+    for row in range(min_row, max_row + 1):
+        values = []
+        coords = []
+        for col in range(min_col, max_col + 1):
+            cell = ws.cell(row=row, column=col)
+            values.append(cell.value)
+            coords.append(cell.coordinate)
+        print(f"Row {row}: {coords} = {values}")
+except Exception as e:
+    print(f"Error analyzing target range: {str(e)}")
+    try:
+        cell = ws[target_range]
+        print(f"Single cell {cell.coordinate} = {cell.value}")
+    except Exception as e2:
+        print(f"Error accessing single cell: {str(e2)}")
+
+# Phase 3: Context & Merged Cells
+print(f"\n🔗 MERGED CELLS:")
+merged_ranges = ws.merged_cells.ranges
+for merged in merged_ranges:
+    print(f"Merged: {str(merged)}")
+
+# Phase 4: Pattern Recognition
+print("\n🎯 TASK PATTERN RECOGNITION:")
+print(f"Instruction: How can I count 'AD' sets in Excel 2010, considering only the two rows above and below a given cell, highlight the cell in red if both rows have numbers, and have the result be 0 if both are blank, for a large number of sets (over 600)? Condition-1 If Row 1 & 2 Is A.D Count From     1 To…, Example Resulr in C72:L72 1 to 10. Condition-2 If Row 1 & 2 Has Numbers Just RED in the corosponding Result Cell M72,Z72,AA72,AH72,AI72,AJ72. Conition-3 If it is nothing then = 0.")
+print(f"Instruction type: Sheet-Level Manipulation")
+
+wb.close()
+
+
+[2025-11-20 20:24:18] [DEBUG] [stage_1_deep_observation]
+[OBSERVATION OUTPUT - FULL]
+📊 WORKBOOK STRUCTURE:
+All sheets: ['Count AD']
+Active sheet: Count AD
+
+--- Sheet: Count AD ---
+Dimensions: 92 rows × 44 cols
+Actual data region: Row 1-92, Col 1-44
+Column letters: A-AR
+
+🎯 TARGET: Sheet 'Count AD', Range 'B72:AR92'
+
+📍 TARGET CELL ANALYSIS:
+Target range: B72:AR92, min_row=72, max_row=92, min_col=2, max_col=44
+Row 72: ['B72', 'C72', 'D72', 'E72', 'F72', 'G72', 'H72', 'I72', 'J72', 'K72', 'L72', 'M72', 'N72', 'O72', 'P72', 'Q72', 'R72', 'S72', 'T72', 'U72', 'V72', 'W72', 'X72', 'Y72', 'Z72', 'AA72', 'AB72', 'AC72', 'AD72', 'AE72', 'AF72', 'AG72', 'AH72', 'AI72', 'AJ72', 'AK72', 'AL72', 'AM72', 'AN72', 'AO72', 'AP72', 'AQ72', 'AR72'] = ['Row 1-2', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, None, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, None, None, 1, 2, 3, 4, 5, 6, None, None, None, 1, 2, 3, 4, 0, 0, 0, 0]
+Row 73: ['B73', 'C73', 'D73', 'E73', 'F73', 'G73', 'H73', 'I73', 'J73', 'K73', 'L73', 'M73', 'N73', 'O73', 'P73', 'Q73', 'R73', 'S73', 'T73', 'U73', 'V73', 'W73', 'X73', 'Y73', 'Z73', 'AA73', 'AB73', 'AC73', 'AD73', 'AE73', 'AF73', 'AG73', 'AH73', 'AI73', 'AJ73', 'AK73', 'AL73', 'AM73', 'AN73', 'AO73', 'AP73', 'AQ73', 'AR73'] = ['Row 3-4', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, None, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, None, 1, 2, 0, 0, 0, 0]
+Row 74: ['B74', 'C74', 'D74', 'E74', 'F74', 'G74', 'H74', 'I74', 'J74', 'K74', 'L74', 'M74', 'N74', 'O74', 'P74', 'Q74', 'R74', 'S74', 'T74', 'U74', 'V74', 'W74', 'X74', 'Y74', 'Z74', 'AA74', 'AB74', 'AC74', 'AD74', 'AE74', 'AF74', 'AG74', 'AH74', 'AI74', 'AJ74', 'AK74', 'AL74', 'AM74', 'AN74', 'AO74', 'AP74', 'AQ74', 'AR74'] = ['Row 5-6', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 75: ['B75', 'C75', 'D75', 'E75', 'F75', 'G75', 'H75', 'I75', 'J75', 'K75', 'L75', 'M75', 'N75', 'O75', 'P75', 'Q75', 'R75', 'S75', 'T75', 'U75', 'V75', 'W75', 'X75', 'Y75', 'Z75', 'AA75', 'AB75', 'AC75', 'AD75', 'AE75', 'AF75', 'AG75', 'AH75', 'AI75', 'AJ75', 'AK75', 'AL75', 'AM75', 'AN75', 'AO75', 'AP75', 'AQ75', 'AR75'] = ['Row 7-8', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 76: ['B76', 'C76', 'D76', 'E76', 'F76', 'G76', 'H76', 'I76', 'J76', 'K76', 'L76', 'M76', 'N76', 'O76', 'P76', 'Q76', 'R76', 'S76', 'T76', 'U76', 'V76', 'W76', 'X76', 'Y76', 'Z76', 'AA76', 'AB76', 'AC76', 'AD76', 'AE76', 'AF76', 'AG76', 'AH76', 'AI76', 'AJ76', 'AK76', 'AL76', 'AM76', 'AN76', 'AO76', 'AP76', 'AQ76', 'AR76'] = ['Row 9-10', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 77: ['B77', 'C77', 'D77', 'E77', 'F77', 'G77', 'H77', 'I77', 'J77', 'K77', 'L77', 'M77', 'N77', 'O77', 'P77', 'Q77', 'R77', 'S77', 'T77', 'U77', 'V77', 'W77', 'X77', 'Y77', 'Z77', 'AA77', 'AB77', 'AC77', 'AD77', 'AE77', 'AF77', 'AG77', 'AH77', 'AI77', 'AJ77', 'AK77', 'AL77', 'AM77', 'AN77', 'AO77', 'AP77', 'AQ77', 'AR77'] = ['Row 11-12', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 78: ['B78', 'C78', 'D78', 'E78', 'F78', 'G78', 'H78', 'I78', 'J78', 'K78', 'L78', 'M78', 'N78', 'O78', 'P78', 'Q78', 'R78', 'S78', 'T78', 'U78', 'V78', 'W78', 'X78', 'Y78', 'Z78', 'AA78', 'AB78', 'AC78', 'AD78', 'AE78', 'AF78', 'AG78', 'AH78', 'AI78', 'AJ78', 'AK78', 'AL78', 'AM78', 'AN78', 'AO78', 'AP78', 'AQ78', 'AR78'] = ['Row 13-14', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 79: ['B79', 'C79', 'D79', 'E79', 'F79', 'G79', 'H79', 'I79', 'J79', 'K79', 'L79', 'M79', 'N79', 'O79', 'P79', 'Q79', 'R79', 'S79', 'T79', 'U79', 'V79', 'W79', 'X79', 'Y79', 'Z79', 'AA79', 'AB79', 'AC79', 'AD79', 'AE79', 'AF79', 'AG79', 'AH79', 'AI79', 'AJ79', 'AK79', 'AL79', 'AM79', 'AN79', 'AO79', 'AP79', 'AQ79', 'AR79'] = ['Row 15-16', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 80: ['B80', 'C80', 'D80', 'E80', 'F80', 'G80', 'H80', 'I80', 'J80', 'K80', 'L80', 'M80', 'N80', 'O80', 'P80', 'Q80', 'R80', 'S80', 'T80', 'U80', 'V80', 'W80', 'X80', 'Y80', 'Z80', 'AA80', 'AB80', 'AC80', 'AD80', 'AE80', 'AF80', 'AG80', 'AH80', 'AI80', 'AJ80', 'AK80', 'AL80', 'AM80', 'AN80', 'AO80', 'AP80', 'AQ80', 'AR80'] = ['Row 17-18', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 81: ['B81', 'C81', 'D81', 'E81', 'F81', 'G81', 'H81', 'I81', 'J81', 'K81', 'L81', 'M81', 'N81', 'O81', 'P81', 'Q81', 'R81', 'S81', 'T81', 'U81', 'V81', 'W81', 'X81', 'Y81', 'Z81', 'AA81', 'AB81', 'AC81', 'AD81', 'AE81', 'AF81', 'AG81', 'AH81', 'AI81', 'AJ81', 'AK81', 'AL81', 'AM81', 'AN81', 'AO81', 'AP81', 'AQ81', 'AR81'] = ['Row 19-20', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 82: ['B82', 'C82', 'D82', 'E82', 'F82', 'G82', 'H82', 'I82', 'J82', 'K82', 'L82', 'M82', 'N82', 'O82', 'P82', 'Q82', 'R82', 'S82', 'T82', 'U82', 'V82', 'W82', 'X82', 'Y82', 'Z82', 'AA82', 'AB82', 'AC82', 'AD82', 'AE82', 'AF82', 'AG82', 'AH82', 'AI82', 'AJ82', 'AK82', 'AL82', 'AM82', 'AN82', 'AO82', 'AP82', 'AQ82', 'AR82'] = ['Row 21-22', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 83: ['B83', 'C83', 'D83', 'E83', 'F83', 'G83', 'H83', 'I83', 'J83', 'K83', 'L83', 'M83', 'N83', 'O83', 'P83', 'Q83', 'R83', 'S83', 'T83', 'U83', 'V83', 'W83', 'X83', 'Y83', 'Z83', 'AA83', 'AB83', 'AC83', 'AD83', 'AE83', 'AF83', 'AG83', 'AH83', 'AI83', 'AJ83', 'AK83', 'AL83', 'AM83', 'AN83', 'AO83', 'AP83', 'AQ83', 'AR83'] = ['Row 23-24', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 84: ['B84', 'C84', 'D84', 'E84', 'F84', 'G84', 'H84', 'I84', 'J84', 'K84', 'L84', 'M84', 'N84', 'O84', 'P84', 'Q84', 'R84', 'S84', 'T84', 'U84', 'V84', 'W84', 'X84', 'Y84', 'Z84', 'AA84', 'AB84', 'AC84', 'AD84', 'AE84', 'AF84', 'AG84', 'AH84', 'AI84', 'AJ84', 'AK84', 'AL84', 'AM84', 'AN84', 'AO84', 'AP84', 'AQ84', 'AR84'] = ['Row 25-26', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 85: ['B85', 'C85', 'D85', 'E85', 'F85', 'G85', 'H85', 'I85', 'J85', 'K85', 'L85', 'M85', 'N85', 'O85', 'P85', 'Q85', 'R85', 'S85', 'T85', 'U85', 'V85', 'W85', 'X85', 'Y85', 'Z85', 'AA85', 'AB85', 'AC85', 'AD85', 'AE85', 'AF85', 'AG85', 'AH85', 'AI85', 'AJ85', 'AK85', 'AL85', 'AM85', 'AN85', 'AO85', 'AP85', 'AQ85', 'AR85'] = ['Row 27-28', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 86: ['B86', 'C86', 'D86', 'E86', 'F86', 'G86', 'H86', 'I86', 'J86', 'K86', 'L86', 'M86', 'N86', 'O86', 'P86', 'Q86', 'R86', 'S86', 'T86', 'U86', 'V86', 'W86', 'X86', 'Y86', 'Z86', 'AA86', 'AB86', 'AC86', 'AD86', 'AE86', 'AF86', 'AG86', 'AH86', 'AI86', 'AJ86', 'AK86', 'AL86', 'AM86', 'AN86', 'AO86', 'AP86', 'AQ86', 'AR86'] = ['Row 29-30', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 87: ['B87', 'C87', 'D87', 'E87', 'F87', 'G87', 'H87', 'I87', 'J87', 'K87', 'L87', 'M87', 'N87', 'O87', 'P87', 'Q87', 'R87', 'S87', 'T87', 'U87', 'V87', 'W87', 'X87', 'Y87', 'Z87', 'AA87', 'AB87', 'AC87', 'AD87', 'AE87', 'AF87', 'AG87', 'AH87', 'AI87', 'AJ87', 'AK87', 'AL87', 'AM87', 'AN87', 'AO87', 'AP87', 'AQ87', 'AR87'] = ['Row 31-32', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 88: ['B88', 'C88', 'D88', 'E88', 'F88', 'G88', 'H88', 'I88', 'J88', 'K88', 'L88', 'M88', 'N88', 'O88', 'P88', 'Q88', 'R88', 'S88', 'T88', 'U88', 'V88', 'W88', 'X88', 'Y88', 'Z88', 'AA88', 'AB88', 'AC88', 'AD88', 'AE88', 'AF88', 'AG88', 'AH88', 'AI88', 'AJ88', 'AK88', 'AL88', 'AM88', 'AN88', 'AO88', 'AP88', 'AQ88', 'AR88'] = ['Row 33-34', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 89: ['B89', 'C89', 'D89', 'E89', 'F89', 'G89', 'H89', 'I89', 'J89', 'K89', 'L89', 'M89', 'N89', 'O89', 'P89', 'Q89', 'R89', 'S89', 'T89', 'U89', 'V89', 'W89', 'X89', 'Y89', 'Z89', 'AA89', 'AB89', 'AC89', 'AD89', 'AE89', 'AF89', 'AG89', 'AH89', 'AI89', 'AJ89', 'AK89', 'AL89', 'AM89', 'AN89', 'AO89', 'AP89', 'AQ89', 'AR89'] = ['Row 35-36', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 90: ['B90', 'C90', 'D90', 'E90', 'F90', 'G90', 'H90', 'I90', 'J90', 'K90', 'L90', 'M90', 'N90', 'O90', 'P90', 'Q90', 'R90', 'S90', 'T90', 'U90', 'V90', 'W90', 'X90', 'Y90', 'Z90', 'AA90', 'AB90', 'AC90', 'AD90', 'AE90', 'AF90', 'AG90', 'AH90', 'AI90', 'AJ90', 'AK90', 'AL90', 'AM90', 'AN90', 'AO90', 'AP90', 'AQ90', 'AR90'] = ['Row 37-38', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 91: ['B91', 'C91', 'D91', 'E91', 'F91', 'G91', 'H91', 'I91', 'J91', 'K91', 'L91', 'M91', 'N91', 'O91', 'P91', 'Q91', 'R91', 'S91', 'T91', 'U91', 'V91', 'W91', 'X91', 'Y91', 'Z91', 'AA91', 'AB91', 'AC91', 'AD91', 'AE91', 'AF91', 'AG91', 'AH91', 'AI91', 'AJ91', 'AK91', 'AL91', 'AM91', 'AN91', 'AO91', 'AP91', 'AQ91', 'AR91'] = ['Row 39-40', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+Row 92: ['B92', 'C92', 'D92', 'E92', 'F92', 'G92', 'H92', 'I92', 'J92', 'K92', 'L92', 'M92', 'N92', 'O92', 'P92', 'Q92', 'R92', 'S92', 'T92', 'U92', 'V92', 'W92', 'X92', 'Y92', 'Z92', 'AA92', 'AB92', 'AC92', 'AD92', 'AE92', 'AF92', 'AG92', 'AH92', 'AI92', 'AJ92', 'AK92', 'AL92', 'AM92', 'AN92', 'AO92', 'AP92', 'AQ92', 'AR92'] = ['Row 41-42', None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+
+🔗 MERGED CELLS:
+Merged: B27:B28
+Merged: B12:B13
+Merged: B18:B19
+Merged: B42:B43
+Merged: AO1:AR3
+Merged: B39:B40
+Merged: B57:B58
+Merged: B48:B49
+Merged: B60:B61
+Merged: B6:B7
+Merged: B24:B25
+Merged: B15:B16
+Merged: B9:B10
+Merged: B36:B37
+Merged: B33:B34
+Merged: B54:B55
+Merged: B30:B31
+Merged: B45:B46
+Merged: B63:B64
+Merged: A2:B4
+Merged: B51:B52
+Merged: B66:B67
+Merged: N1:Y2
+Merged: C1:L3
+Merged: B21:B22
+
+🎯 TASK PATTERN RECOGNITION:
+Instruction: How can I count 'AD' sets in Excel 2010, considering only the two rows above and below a given cell, highlight the cell in red if both rows have numbers, and have the result be 0 if both are blank, for a large number of sets (over 600)? Condition-1 If Row 1 & 2 Is A.D Count From     1 To…, Example Resulr in C72:L72 1 to 10. Condition-2 If Row 1 & 2 Has Numbers Just RED in the corosponding Result Cell M72,Z72,AA72,AH72,AI72,AJ72. Conition-3 If it is nothing then = 0.
+Instruction type: Sheet-Level Manipulation
+
+
+[2025-11-20 20:24:18] [INFO] [stage_1_deep_observation]
+[OBSERVATION SUMMARY]
+Actual data region: Row 1-92, Col 1-44
+🎯 TARGET: Sheet 'Count AD', Range 'B72:AR92'
+Target range: B72:AR92, min_row=72, max_row=92, min_col=2, max_col=44
+🎯 TASK PATTERN RECOGNITION:
+
+[2025-11-20 20:24:18] [INFO] [log_stage]
+
+====================================================================================================
+🔍 STAGE: 1️⃣ DEEP OBSERVATION [⏱️ 0.16s]
+====================================================================================================
+
+[2025-11-20 20:24:18] [INFO] [log_stage]
+Analyzing non-standard spreadsheet structure
+Task: How can I count 'AD' sets in Excel 2010, considering only the two rows above and below a given cell, highlight the cell in red if both rows have numbers, and have the result be 0 if both are blank, for a large number of sets (over 600)? Condition-1 If Row 1 & 2 Is A.D Count From     1 To…, Example Resulr in C72:L72 1 to 10. Condition-2 If Row 1 & 2 Has Numbers Just RED in the corosponding Result Cell M72,Z72,AA72,AH72,AI72,AJ72. Conition-3 If it is nothing then = 0.
+
+[2025-11-20 20:24:18] [INFO] [solve_task]
+♻️ Test case 3: Reusing code generated from test case 1 (skipping LLM calls)
+
+[2025-11-20 20:24:18] [ERROR] [solve_task]
+❌ Exception in test case 3: 'NoneType' object has no attribute 'get'
+
+[2025-11-20 20:24:18] [INFO] [solve_task]
+
+⏱️  TIMING SUMMARY FOR TASK 5-33:
+
+[2025-11-20 20:24:18] [INFO] [solve_task]
+Total task time: 1014.72s
+
+[2025-11-20 20:24:18] [INFO] [solve_task]
+  - stage_1_observation: 0.16s (0.0%)
+
+[2025-11-20 20:24:18] [INFO] [solve_task]
+  - stage_2_understanding: 210.01s (20.7%)
+
+[2025-11-20 20:24:18] [INFO] [solve_task]
+  - stage_3_planning: 198.93s (19.6%)
+
+[2025-11-20 20:24:18] [INFO] [solve_task]
+✅ Task 5-33 finished all test cases. Overall success: False
+
+[2025-11-20 20:24:18] [INFO] [solve_task]
+
+####################################################################################################
+🚀 STARTING TASK 59196 (multi test cases 1..3)
+####################################################################################################
+
+[2025-11-20 20:24:18] [INFO] [solve_task]
+--- Processing test case 1: /mnt/data/test1/spreadsheet/59196/1_59196_input.xlsx -> /mnt/data/test1/outputs/sheetcopilot_glm-4.5-air/1_59196_output.xlsx
+
+[2025-11-20 20:24:18] [DEBUG] [stage_1_deep_observation]
+[OBSERVATION CODE (PRE-DEFINED)]
+import openpyxl
+from openpyxl.utils import get_column_letter, range_boundaries
+import re
+
+# Phase 1: Global Structure Analysis
+wb = openpyxl.load_workbook('/mnt/data/test1/spreadsheet/59196/1_59196_input.xlsx')
+
+print("📊 WORKBOOK STRUCTURE:")
+print(f"All sheets: {wb.sheetnames}")
+print(f"Active sheet: {wb.active.title}")
+
+for sheet_name in wb.sheetnames:
+    ws = wb[sheet_name]
+    print(f"\n--- Sheet: {sheet_name} ---")
+    print(f"Dimensions: {ws.max_row} rows × {ws.max_column} cols")
+    
+    # Find actual data boundaries
+    min_row, max_row = None, None
+    min_col, max_col = None, None
+    for row in range(1, ws.max_row + 1):
+        if any(ws.cell(row, col).value is not None for col in range(1, ws.max_column + 1)):
+            if min_row is None:
+                min_row = row
+            max_row = row
+    for col in range(1, ws.max_column + 1):
+        if any(ws.cell(row, col).value is not None for row in range(1, ws.max_row + 1)):
+            if min_col is None:
+                min_col = col
+            max_col = col
+    
+    if min_row and min_col:
+        print(f"Actual data region: Row {min_row}-{max_row}, Col {min_col}-{max_col}")
+        print(f"Column letters: {get_column_letter(min_col)}-{get_column_letter(max_col)}")
+
+# Phase 2: Target Position Analysis
+target_str = "H3:H5"
+sheet_match = re.match(r"'([^']+)'!(.+)", target_str)
+if sheet_match:
+    target_sheet = sheet_match.group(1)
+    target_range = sheet_match.group(2)
+    print(f"\n🎯 TARGET: Sheet '{target_sheet}', Range '{target_range}'")
+    ws = wb[target_sheet]
+else:
+    target_range = target_str
+    ws = wb.active
+    print(f"\n🎯 TARGET: Active sheet, Range '{target_range}'")
+
+print(f"\n📍 TARGET CELL ANALYSIS:")
+try:
+    min_col, min_row, max_col, max_row = range_boundaries(target_range)
+    print(f"Target range: {target_range}, min_row={min_row}, max_row={max_row}, min_col={min_col}, max_col={max_col}")
+    for row in range(min_row, max_row + 1):
+        values = []
+        coords = []
+        for col in range(min_col, max_col + 1):
+            cell = ws.cell(row=row, column=col)
+            values.append(cell.value)
+            coords.append(cell.coordinate)
+        print(f"Row {row}: {coords} = {values}")
+except Exception as e:
+    print(f"Error analyzing target range: {str(e)}")
+    try:
+        cell = ws[target_range]
+        print(f"Single cell {cell.coordinate} = {cell.value}")
+    except Exception as e2:
+        print(f"Error accessing single cell: {str(e2)}")
+
+# Phase 3: Context & Merged Cells
+print(f"\n🔗 MERGED CELLS:")
+merged_ranges = ws.merged_cells.ranges
+for merged in merged_ranges:
+    print(f"Merged: {str(merged)}")
+
+# Phase 4: Pattern Recognition
+print("\n🎯 TASK PATTERN RECOGNITION:")
+print(f"Instruction: I need a formula to determine which column contains the highest value in a row, and then return the heading of that column. My Excel sheet example is attached.")
+print(f"Instruction type: Cell-Level Manipulation")
+
+wb.close()
+
+
+[2025-11-20 20:24:18] [DEBUG] [stage_1_deep_observation]
+[OBSERVATION OUTPUT - FULL]
+📊 WORKBOOK STRUCTURE:
+All sheets: ['Sheet1']
+Active sheet: Sheet1
+
+--- Sheet: Sheet1 ---
+Dimensions: 5 rows × 8 cols
+Actual data region: Row 2-5, Col 4-8
+Column letters: D-H
+
+🎯 TARGET: Active sheet, Range 'H3:H5'
+
+📍 TARGET CELL ANALYSIS:
+Target range: H3:H5, min_row=3, max_row=5, min_col=8, max_col=8
+Row 3: ['H3'] = ['D']
+Row 4: ['H4'] = [None]
+Row 5: ['H5'] = [None]
+
+🔗 MERGED CELLS:
+
+🎯 TASK PATTERN RECOGNITION:
+Instruction: I need a formula to determine which column contains the highest value in a row, and then return the heading of that column. My Excel sheet example is attached.
+Instruction type: Cell-Level Manipulation
+
+
+[2025-11-20 20:24:18] [INFO] [stage_1_deep_observation]
+[OBSERVATION SUMMARY]
+Actual data region: Row 2-5, Col 4-8
+🎯 TARGET: Active sheet, Range 'H3:H5'
+Target range: H3:H5, min_row=3, max_row=5, min_col=8, max_col=8
+🎯 TASK PATTERN RECOGNITION:
+
+[2025-11-20 20:24:18] [INFO] [log_stage]
+
+====================================================================================================
+🔍 STAGE: 1️⃣ DEEP OBSERVATION [⏱️ 0.09s]
+====================================================================================================
+
+[2025-11-20 20:24:18] [INFO] [log_stage]
+Analyzing non-standard spreadsheet structure
+Task: I need a formula to determine which column contains the highest value in a row, and then return the heading of that column. My Excel sheet example is attached.
+
+[2025-11-20 20:24:18] [INFO] [solve_task]
+🎯 Test case 1: Generating code with LLM (stages 2-5)
+
+[2025-11-20 20:24:18] [DEBUG] [stage_2_instruction_understanding]
+[UNDERSTANDING PROMPT]
+You are SheetCopilot v2 in INSTRUCTION UNDERSTANDING stage.
+
+
+This is a REAL-WORLD user question from Excel forums. Your task is to extract the CORE requirements.
+
+📝 **ORIGINAL INSTRUCTION** (may be long and informal):
+I need a formula to determine which column contains the highest value in a row, and then return the heading of that column. My Excel sheet example is attached.
+
+📊 **SPREADSHEET STRUCTURE** (from observation):
+📊 WORKBOOK STRUCTURE:
+All sheets: ['Sheet1']
+Active sheet: Sheet1
+
+--- Sheet: Sheet1 ---
+Dimensions: 5 rows × 8 cols
+Actual data region: Row 2-5, Col 4-8
+Column letters: D-H
+
+🎯 TARGET: Active sheet, Range 'H3:H5'
+
+📍 TARGET CELL ANALYSIS:
+Target range: H3:H5, min_row=3, max_row=5, min_col=8, max_col=8
+Row 3: ['H3'] = ['D']
+Row 4: ['H4'] = [None]
+Row 5: ['H5'] = [None]
+
+🔗 MERGED CELLS:
+
+🎯 TASK PATTERN RECOGNITION:
+Instruction: I need a formula to determine which column contains the highest value in a row, and then return the heading of that column. My Excel sheet example is attached.
+Instruction type: Cell-Level Manipulation
+  # Truncate for LLM prompt
+
+🎯 **TASK TYPE**: Cell-Level Manipulation
+
+**YOUR ANALYSIS TASK**:
+Break down this real-world instruction into structured requirements:
+
+## 1. Core Objective
+What is the PRIMARY goal? (in one clear sentence)
+
+## 2. Input Data Location
+- Which cells/ranges contain the INPUT data?
+- Are there multiple source locations?
+- What format is the input data? (numbers, text, formulas, etc.)
+
+## 3. Output Requirements
+- Where should results be written? (target cells)
+- What format should output be? (formula, value, formatting, etc.)
+- Any specific output constraints?
+
+## 4. Business Logic
+- What calculation/operation is needed?
+- Any conditions or criteria to apply?
+- Special cases or edge cases mentioned?
+
+Provide your structured analysis:
+
+
