@@ -7,4 +7,6 @@ openai>=1.55.3
 docker==7.1.0
 numpy>=1.23.2
 httpx==0.27.2
+# Excel COM automation (Windows only; safely ignored on other OS)
+pywin32==306
 # vllm

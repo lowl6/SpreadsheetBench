@@ -54,7 +54,31 @@ The ```spreadsheet``` folder contains the corresponding spreadsheet files of the
 
 ## Environment Setup
 
-The environment is used for model inference and evaluation and you can install the requirements with pip:
+The environment is used for model inference and evaluation.
+
+### Python / Pandas Compatibility
+If you are on Python 3.13 and encounter a `pandas` build error (Meson metadata generation failing), it is usually because pre-built wheels for `pandas==2.2.0` are not available for 3.13. Recommended options:
+
+1. Use a Conda environment (e.g. Python 3.11 or 3.12):
+  ```powershell
+  conda create -n sheetbench_py312 python=3.12 -y
+  conda activate sheetbench_py312
+  pip install -r requirements.txt
+  ```
+2. Or install a newer pandas pre-release/wheel (if available for 3.13):
+  ```powershell
+  pip install --upgrade "numpy>=2"  # ensure modern numpy first
+  pip install --pre pandas
+  ```
+3. Or downgrade Python (recommended for stability with win32com): 3.11 / 3.12.
+
+Ensure the `python` you run is the one inside your environment:
+```powershell
+where python
+python -V
+```
+
+### Install Requirements
 ```
 pip install -r requirements.txt
 ```
@@ -121,6 +145,37 @@ bash scripts/inference_multiple_row_react_exec.sh
 
 You need to modify the model, api_key, and base_url parameters in the scripts.
 The code solution are saved in the ```inference/output``` folder and the result spreadsheet files are saved in the ```data/sample_data_200/outputs``` folder.
+
+### Dynamic Array (Spill) Recalculation Support
+
+Real Excel dynamic array formulas (e.g. `=FILTER()`, `=UNIQUE()`, `=SORT()`) do not spill when saved by pure Python libraries alone. We provide an optional post-processing step that opens the output workbook in real Excel via COM to force a full recalculation and (optionally) materialize spill results as static values.
+
+New CLI flags in `sheetcopilot_v2.py`:
+* `--excel-recalc` – After code execution, open workbook in Excel and force `CalculateFull`.
+* `--materialize-dynamic` – Convert spilled ranges into static values (makes openpyxl reading deterministic).
+* `--strip-dynamic-formula` – When materializing spills, also replace the source spill formula cell with its value.
+
+Example PowerShell invocation (multi‑round v2):
+```powershell
+python .\inference\sheetcopilot_v2.py `
+  --model glm-4.5-air `
+  --dataset test1 `
+  --code_exec_url http://localhost:8080/execute `
+  --conv_id COPILOT `
+  --excel-recalc `
+  --materialize-dynamic `
+  --strip-dynamic-formula
+```
+
+Fallback behavior:
+* On non-Windows or if `pywin32` is missing, the flags are ignored with a warning.
+* Without `--materialize-dynamic`, formulas remain and will spill only when a user later opens the file in Excel.
+* With materialization, spilled cells turn into static values—use this for evaluation consistency.
+
+Troubleshooting:
+* If no spill results appear: verify Excel installed; ensure script runs on Windows; check log for `[EXCEL RECALC]` messages.
+* If Excel remains open: kill lingering `EXCEL.EXE` processes and rerun; rare COM cleanup issue.
+* If access denied on save: close any manually opened workbook instance before running recalc.
 
 ## Evaluation
 

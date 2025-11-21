@@ -16,7 +16,10 @@ python sheetcopilot_v2.py `
     --dataset test1 `
     --code_exec_url http://localhost:8080/execute `
     --conv_id COPILOT `
-    --log_dir "../log"
+    --log_dir "../log" `
+    --excel-recalc `
+    --materialize-dynamic `
+    --strip-dynamic-formula
 
 Write-Host ""
 Write-Host "✅ SheetCopilot v2 execution completed!" -ForegroundColor Green

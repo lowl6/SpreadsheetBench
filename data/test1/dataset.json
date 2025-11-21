@@ -1,25 +1,9 @@
 [
     {
-        "id": "79-7",
-        "instruction": "I am struggling to use VBA to find and replace all instances of double quotes with nothing across all columns in a worksheet, not just column A. My current code performs the replacement but it doesn't work as intended and I need assistance to fix this issue. Additionally, I have an attached file where I'm trying to apply this action.",
-        "spreadsheet_path": "spreadsheet/79-7",
-        "instruction_type": "Sheet-Level Manipulation",
-        "answer_position": "'Sheet1'!A1:A4",
-        "answer_sheet": "Sheet1",
-        "data_position": "A1:A4"
-    },
-    {
         "id": 57072,
         "instruction": "How can I modify the XLOOKUP function in Excel so that it skips certain values returned based on additional criteria? Specifically, I want to avoid returning values where there is an unrelated comment in the lookup range (e.g., skipping comments in Column B of Sheet1) and instead ensure that the function only returns the value where the type is 'machine'. For example, I have an issue where the XLOOKUP is incorrectly returning 0 for an item code M023 instead of the correct score 450 due to an irrelevant comment being fetched.   My current formula is: XLOOKUP(\"*\"&A1&\"*\",Sheet1!A:A,Sheet1!D:D,\"\",2)",
         "spreadsheet_path": "spreadsheet/57072",
         "instruction_type": "Cell-Level Manipulation",
         "answer_position": "'Sheet2'!B1:B300"
-    },
-    {
-        "id": 59196,
-        "instruction": "I need a formula to determine which column contains the highest value in a row, and then return the heading of that column. My Excel sheet example is attached.",
-        "spreadsheet_path": "spreadsheet/59196",
-        "instruction_type": "Cell-Level Manipulation",
-        "answer_position": "H3:H5"
     }
 ]

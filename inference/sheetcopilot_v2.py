@@ -19,6 +19,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from llm_api import get_llm_response
 from code_exec import get_exec_client, extract_code, exec_code
 from excel_calculator import calculate_formulas
+from excel_recalc import recalc_workbook
 
 
 def setup_logger(log_dir: str, model_name: str) -> logging.Logger:
@@ -99,21 +100,22 @@ class SheetCopilotV2:
         stage_start = time.time() if self.enable_timing else None
         
         # Pre-defined observation code - no LLM generation needed
-        observation_code = f"""import openpyxl
+        # Use triple quotes without f-string to avoid escaping issues
+        observation_code = """import openpyxl
 from openpyxl.utils import get_column_letter, range_boundaries
 import re
 
 # Phase 1: Global Structure Analysis
-wb = openpyxl.load_workbook('{file_path}')
+wb = openpyxl.load_workbook('""" + file_path + """')
 
 print("📊 WORKBOOK STRUCTURE:")
-print(f"All sheets: {{wb.sheetnames}}")
-print(f"Active sheet: {{wb.active.title}}")
+print(f"All sheets: {wb.sheetnames}")
+print(f"Active sheet: {wb.active.title}")
 
 for sheet_name in wb.sheetnames:
     ws = wb[sheet_name]
-    print(f"\\n--- Sheet: {{sheet_name}} ---")
-    print(f"Dimensions: {{ws.max_row}} rows × {{ws.max_column}} cols")
+    print(f"\\n--- Sheet: {sheet_name} ---")
+    print(f"Dimensions: {ws.max_row} rows × {ws.max_column} cols")
     
     # Find actual data boundaries
     min_row, max_row = None, None
@@ -130,52 +132,63 @@ for sheet_name in wb.sheetnames:
             max_col = col
     
     if min_row and min_col:
-        print(f"Actual data region: Row {{min_row}}-{{max_row}}, Col {{min_col}}-{{max_col}}")
-        print(f"Column letters: {{get_column_letter(min_col)}}-{{get_column_letter(max_col)}}")
+        print(f"Actual data region: Row {min_row}-{max_row}, Col {min_col}-{max_col}")
+        print(f"Column letters: {get_column_letter(min_col)}-{get_column_letter(max_col)}")
 
 # Phase 2: Target Position Analysis
-target_str = "{answer_position}"
+target_str = \"""" + answer_position + """\"
 sheet_match = re.match(r"'([^']+)'!(.+)", target_str)
 if sheet_match:
     target_sheet = sheet_match.group(1)
     target_range = sheet_match.group(2)
-    print(f"\\n🎯 TARGET: Sheet '{{target_sheet}}', Range '{{target_range}}'")
+    print(f"\\n🎯 TARGET: Sheet '{target_sheet}', Range '{target_range}'")
     ws = wb[target_sheet]
 else:
     target_range = target_str
     ws = wb.active
-    print(f"\\n🎯 TARGET: Active sheet, Range '{{target_range}}'")
+    print(f"\\n🎯 TARGET: Active sheet, Range '{target_range}'")
 
 print(f"\\n📍 TARGET CELL ANALYSIS:")
 try:
     min_col, min_row, max_col, max_row = range_boundaries(target_range)
-    print(f"Target range: {{target_range}}, min_row={{min_row}}, max_row={{max_row}}, min_col={{min_col}}, max_col={{max_col}}")
-    for row in range(min_row, max_row + 1):
+    print(f"Target range: {target_range}, min_row={min_row}, max_row={max_row}, min_col={min_col}, max_col={max_col}")
+    total_rows = max_row - min_row + 1
+    # For large ranges (>20 rows), show sample only
+    if total_rows > 20:
+        print(f"Large range detected ({total_rows} rows). Showing first 10 and last 5 rows as sample:")
+        sample_rows = list(range(min_row, min(min_row + 10, max_row + 1))) + list(range(max(max_row - 4, min_row + 10), max_row + 1))
+    else:
+        sample_rows = range(min_row, max_row + 1)
+    
+    for row in sample_rows:
         values = []
         coords = []
         for col in range(min_col, max_col + 1):
             cell = ws.cell(row=row, column=col)
             values.append(cell.value)
             coords.append(cell.coordinate)
-        print(f"Row {{row}}: {{coords}} = {{values}}")
+        print(f"Row {row}: {coords} = {values}")
+    
+    if total_rows > 20:
+        print(f"... ({total_rows - 15} middle rows omitted) ...")
 except Exception as e:
-    print(f"Error analyzing target range: {{str(e)}}")
+    print(f"⚠️ Could not analyze target range in detail: {str(e)}")
+    print(f"Attempting to access as single cell or use fallback...")
     try:
         cell = ws[target_range]
-        print(f"Single cell {{cell.coordinate}} = {{cell.value}}")
-    except Exception as e2:
-        print(f"Error accessing single cell: {{str(e2)}}")
+        print(f"Single cell {cell.coordinate} = {cell.value}")
+    except:
+        print(f"Target range is complex. Will handle dynamically in code.")
 
 # Phase 3: Context & Merged Cells
 print(f"\\n🔗 MERGED CELLS:")
 merged_ranges = ws.merged_cells.ranges
 for merged in merged_ranges:
-    print(f"Merged: {{str(merged)}}")
+    print(f"Merged: {str(merged)}")
 
 # Phase 4: Pattern Recognition
 print("\\n🎯 TASK PATTERN RECOGNITION:")
-print(f"Instruction: {instruction}")
-print(f"Instruction type: {instruction_type}")
+# Instruction and type are shown in logs, no need to print in code
 
 wb.close()
 """
@@ -191,7 +204,22 @@ wb.close()
             result_lines = result.split('\n')
             summary_lines = [line for line in result_lines if any(keyword in line for keyword in ['TARGET:', 'Actual data region:', 'Target range:', 'TASK PATTERN'])]
             self.logger.info(f"[OBSERVATION SUMMARY]\n" + "\n".join(summary_lines[:10]))
-            success = ('Error' not in result) and ('Traceback' not in result) and ('JSON_DECODE_ERROR' not in result)
+            # Check for fatal errors only (warnings ⚠️ are OK)
+            has_fatal_error = 'Traceback' in result or 'JSON_DECODE_ERROR' in result or 'EXECUTION REQUEST ERROR' in result
+            
+            # Check if result is actually SOURCE CODE (not executed)
+            is_source_code = ('import openpyxl' in result and 'wb = openpyxl.load_workbook' in result and result.count('\n') < 5)
+            
+            # Check if we got minimal required info from execution
+            has_basic_info = ('Target range:' in result or 'WORKBOOK STRUCTURE:' in result or 'All sheets:' in result)
+            
+            # Success: no fatal error, not source code, has basic info
+            success = (not has_fatal_error) and (not is_source_code) and has_basic_info
+            
+            if is_source_code:
+                self.logger.warning("⚠️ Observation returned source code instead of execution output! Check Docker API.")
+            if not has_basic_info and not has_fatal_error:
+                self.logger.warning(f"⚠️ Observation executed but missing key info. Result preview: {result[:200]}")
         except Exception as e:
             result = f"Observation error: {str(e)}"
             success = False
@@ -451,7 +479,6 @@ Write COMPLETE, PRODUCTION-READY Python code following the plan above.
 ✅ Include try-except for robust error handling
 ✅ Use actual sheet names and cell ranges from observation
 ✅ Support non-standard table positions
-✅ Add print() statements for debugging
 ✅ Load from: {file_path}
 ✅ Save to: {output_path}
 ✅ Target cells: {answer_position}
@@ -462,6 +489,22 @@ Write COMPLETE, PRODUCTION-READY Python code following the plan above.
 ❌ Example: If target is H3, do NOT use H3 in the formula
 ✅ Only reference INPUT data cells, never OUTPUT target cells
 
+⚠️ **EXCEL FORMULA SYNTAX RULES** (when writing formulas to cells):
+❌ WRONG: =@XLOOKUP(...) or @Sheet1!A1    → NO @ prefix before function names or sheet names
+✅ CORRECT: =XLOOKUP(...) or Sheet1!A1
+
+❌ WRONG: ="*&A1&*"                        → String literal cannot contain & without quotes
+✅ CORRECT: ="*"&A1&"*"                    → Concatenate with & outside quotes
+
+❌ WRONG: =IF(@B:B="value",A:A,"")         → NO @ prefix in array formulas
+✅ CORRECT: =IF(B:B="value",A:A,"")        → Clean array formula syntax
+
+When writing Excel formulas in Python code:
+```python
+# Correct string concatenation in formulas
+cell.value = '="*"&A1&"*"'              # NOT '="*&A1&*"'
+cell.value = '=XLOOKUP("*"&A1&"*",...)'  # NOT '=@XLOOKUP("*&A1&*",...)'
+```
 
 **CODE TEMPLATE** (adapt to your specific task):
 ```python
@@ -485,7 +528,6 @@ try:
     else:
         ws = wb.active
         target_range = target_str
-        print(f"Working on active sheet: {{ws.title}}")
     
     # 3. Parse target range (e.g., "A1:B10" or "C5")
     # Implement based on your plan
@@ -529,6 +571,9 @@ except Exception as e:
         self.logger.debug(f"[IMPLEMENTATION RESPONSE]\n{response}")
         
         code = extract_code(response)
+        # Replace placeholders with actual paths for current test case
+        code = code.replace('{file_path}', file_path)
+        code = code.replace('{output_path}', output_path)
         self.logger.debug(f"[IMPLEMENTATION CODE]\n{code}")
         
         if self.enable_timing:
@@ -605,7 +650,14 @@ You need to review the generated code for common issues BEFORE execution.
 - [ ] NO circular dependencies between target cells
 - [ ] Formulas only reference INPUT cells, not OUTPUT cells
 
-## 7. Edge Cases ✓/✗
+## 7. Excel Formula Syntax ✓/✗
+- [ ] NO unnecessary @ prefix (e.g., @XLOOKUP should be XLOOKUP, @Sheet1 should be Sheet1)
+- [ ] String concatenation uses correct syntax: "text"&cell&"text" NOT "text&cell&text"
+- [ ] Array formulas use correct syntax (IF arrays, FILTER, etc.)
+- [ ] Function names are spelled correctly (XLOOKUP, VLOOKUP, INDEX, MATCH, etc.)
+- [ ] Function arguments are in correct order and data types
+
+## 8. Edge Cases ✓/✗
 - [ ] Handles empty cells
 - [ ] Handles merged cells (if applicable)
 - [ ] Handles single cell vs range
@@ -666,8 +718,20 @@ Provide your validation result:
         import time
         stage_start = time.time() if self.enable_timing else None
         
-        # Use corrected code from validation if available
-        code_to_execute = validation.get('corrected_code') or implementation['code']
+        # Print stage header at the beginning
+        if self.enable_timing:
+            self.log_stage("6️⃣ EXECUTION & REVISION", 
+                          "Running code with intelligent error recovery", 
+                          None)  # Time will be updated at the end
+        
+        # Use corrected code from validation if available (handle None case)
+        if validation is not None:
+            code_to_execute = validation.get('corrected_code') or implementation['code']
+        else:
+            code_to_execute = implementation['code']
+        
+        # Replace hardcoded paths before execution (important for code reuse)
+        code_to_execute = self._replace_hardcoded_paths(code_to_execute, file_path, output_path)
         
         for revision_num in range(self.max_revisions + 1):
             self.logger.info(f"Execution attempt {revision_num + 1}/{self.max_revisions + 1}")
@@ -686,12 +750,19 @@ Provide your validation result:
                     if os.path.exists(output_local):
                         self.logger.info(f"[POST-PROCESS] Calculating formulas in output file")
                         calculate_formulas(output_local, self.logger)
+                        if getattr(self.opt, 'excel_recalc', False):
+                            self.logger.info("[POST-PROCESS] Excel COM full recalc starting")
+                            recalc_workbook(
+                                input_path=output_local,
+                                output_path=output_local,
+                                materialize_dynamic=getattr(self.opt, 'materialize_dynamic', False),
+                                strip_formula=getattr(self.opt, 'strip_dynamic_formula', False),
+                                logger=self.logger,
+                            )
                     if self.enable_timing:
                         stage_time = time.time() - stage_start
                         self.stage_timings['stage_6_execution'] = stage_time
-                        self.log_stage("6️⃣ EXECUTION & REVISION", 
-                                      "Running code with intelligent error recovery", 
-                                      stage_time)
+                        self.logger.info(f"⏱️  Stage 6 completed in {stage_time:.2f}s")
                     return {
                         'success': True,
                         'result': result,
@@ -711,9 +782,7 @@ Provide your validation result:
                     if self.enable_timing:
                         stage_time = time.time() - stage_start
                         self.stage_timings['stage_6_execution'] = stage_time
-                        self.log_stage("6️⃣ EXECUTION & REVISION", 
-                                      "Running code with intelligent error recovery", 
-                                      stage_time)
+                        self.logger.info(f"⏱️  Stage 6 completed in {stage_time:.2f}s (failed)")
                     return {
                         'success': False,
                         'result': result,
@@ -734,9 +803,7 @@ Provide your validation result:
                     if self.enable_timing:
                         stage_time = time.time() - stage_start
                         self.stage_timings['stage_6_execution'] = stage_time
-                        self.log_stage("6️⃣ EXECUTION & REVISION", 
-                                      "Running code with intelligent error recovery", 
-                                      stage_time)
+                        self.logger.info(f"⏱️  Stage 6 completed in {stage_time:.2f}s (exception)")
                     return {
                         'success': False,
                         'result': error_msg,
@@ -747,9 +814,7 @@ Provide your validation result:
         if self.enable_timing:
             stage_time = time.time() - stage_start
             self.stage_timings['stage_6_execution'] = stage_time
-            self.log_stage("6️⃣ EXECUTION & REVISION", 
-                          "Running code with intelligent error recovery", 
-                          stage_time)
+            self.logger.info(f"⏱️  Stage 6 completed in {stage_time:.2f}s (unexpected exit)")
         return {
             'success': False,
             'result': 'Unexpected execution flow',
@@ -790,6 +855,11 @@ Provide your validation result:
    - AttributeError (cell is None/empty)
    - TypeError (wrong data type, need int() or float())
    - KeyError (sheet doesn't exist)
+   - Excel formula syntax errors:
+     * @ prefix before function names (e.g., @XLOOKUP should be XLOOKUP)
+     * @ prefix before sheet names (e.g., @Sheet1 should be Sheet1)
+     * Wrong string concatenation (e.g., "*&A1&*" should be "*"&A1&"*")
+     * Missing quotes around string literals in formulas
 
 3. Fix the code COMPLETELY
 4. Ensure fix addresses the root cause, not just symptoms
@@ -800,6 +870,7 @@ Provide your validation result:
 - Validate indices are within actual range
 - Use correct sheet names from observation
 - ⚠️ AVOID CIRCULAR REFERENCES: Do NOT reference target cells in formulas
+- ⚠️ EXCEL FORMULA SYNTAX: NO @ prefix, correct string concatenation with &
 
 **Generate FIXED code**:
 """
@@ -814,6 +885,8 @@ Provide your validation result:
         self.logger.debug(f"[REVISION RESPONSE]\n{response}")
         
         revised_code = extract_code(response)
+        # Replace with current test case paths (in case LLM hardcoded old paths)
+        revised_code = self._replace_hardcoded_paths(revised_code, file_path, output_path)
         self.logger.info(f"[REVISED CODE]\n{revised_code}")
         
         return revised_code
@@ -855,6 +928,38 @@ Provide your validation result:
                 issues.append(line.strip())
         return issues
     
+    def _replace_hardcoded_paths(self, code: str, file_path: str, output_path: str) -> str:
+        """Replace hardcoded file paths in generated code with current test case paths"""
+        import re
+        
+        # Pattern 1: openpyxl.load_workbook('...')
+        code = re.sub(
+            r"openpyxl\.load_workbook\(['\"]([^'\"]+)['\"]\)",
+            f"openpyxl.load_workbook('{file_path}')",
+            code
+        )
+        
+        # Pattern 2: wb.save('...')
+        code = re.sub(
+            r"wb\.save\(['\"]([^'\"]+)['\"]\)",
+            f"wb.save('{output_path}')",
+            code
+        )
+        
+        # Pattern 3: Variable assignment like input_path = '...'
+        code = re.sub(
+            r"input_path\s*=\s*['\"]([^'\"]+)['\"]",
+            f"input_path = '{file_path}'",
+            code
+        )
+        code = re.sub(
+            r"output_path\s*=\s*['\"]([^'\"]+)['\"]",
+            f"output_path = '{output_path}'",
+            code
+        )
+        
+        return code
+    
     def solve_task(self, task_data: Dict[str, Any], dataset_path: str) -> Dict[str, Any]:
         """
         Main pipeline: Process one task through all stages
@@ -878,6 +983,9 @@ Provide your validation result:
         total_revisions = 0
         overall_success = True
         final_code_last = None
+        
+        # Reset stage timings for this task
+        self.stage_timings = {}
         
         # Shared code generation results (only generate once for test case 1)
         shared_understanding = None
@@ -920,35 +1028,50 @@ Provide your validation result:
                 if test_case_idx == 1:
                     self.logger.info("🎯 Test case 1: Generating code with LLM (stages 2-5)")
                     
-                    # Stage 2: Instruction Understanding
-                    shared_understanding = self.stage_2_instruction_understanding(
-                        observation,
-                        task_data['instruction'],
-                        task_data['instruction_type']
-                    )
-                    conversation.append("[Stage 2 Understanding completed]")
+                    try:
+                        # Stage 2: Instruction Understanding
+                        shared_understanding = self.stage_2_instruction_understanding(
+                            observation,
+                            task_data['instruction'],
+                            task_data['instruction_type']
+                        )
+                        conversation.append("[Stage 2 Understanding completed]")
 
-                    # Stage 3: Solution Planning
-                    shared_plan = self.stage_3_solution_planning(
-                        observation, shared_understanding,
-                        input_path, output_path,
-                        task_data['answer_position']
-                    )
-                    conversation.append("[Stage 3 Planning completed]")
+                        # Stage 3: Solution Planning
+                        shared_plan = self.stage_3_solution_planning(
+                            observation, shared_understanding,
+                            input_path, output_path,
+                            task_data['answer_position']
+                        )
+                        conversation.append("[Stage 3 Planning completed]")
 
-                    # Stage 4: Code Implementation
-                    shared_implementation = self.stage_4_code_implementation(
-                        observation, shared_understanding, shared_plan,
-                        input_path, output_path,
-                        task_data['answer_position']
-                    )
-                    conversation.append(f"[Stage 4 Implementation completed - Code length: {len(shared_implementation['code'])} chars]")
+                        # Stage 4: Code Implementation
+                        shared_implementation = self.stage_4_code_implementation(
+                            observation, shared_understanding, shared_plan,
+                            input_path, output_path,
+                            task_data['answer_position']
+                        )
+                        conversation.append(f"[Stage 4 Implementation completed - Code length: {len(shared_implementation['code'])} chars]")
 
-                    # Stage 5: Code Validation
-                    shared_validation = self.stage_5_code_validation(
-                        shared_implementation, observation, shared_plan
-                    )
-                    conversation.append(f"[Stage 5 Validation: {'PASSED' if shared_validation['passed'] else 'ISSUES FOUND'}]")
+                        # Stage 5: Code Validation
+                        shared_validation = self.stage_5_code_validation(
+                            shared_implementation, observation, shared_plan
+                        )
+                        conversation.append(f"[Stage 5 Validation: {'PASSED' if shared_validation['passed'] else 'ISSUES FOUND'}]")
+                    
+                    except Exception as llm_error:
+                        self.logger.error(f"❌ LLM stages (2-5) failed for test case 1: {str(llm_error)}")
+                        # Mark all test cases as failed since we can't generate code
+                        for tc_idx in range(1, 4):
+                            all_case_results.append({
+                                'test_case_index': tc_idx,
+                                'success': False,
+                                'revisions_needed': 0,
+                                'final_code': ''
+                            })
+                        overall_success = False
+                        aggregate_conversation.extend(conversation)
+                        break  # Exit the test case loop
                 else:
                     self.logger.info(f"♻️ Test case {test_case_idx}: Reusing code generated from test case 1 (skipping LLM calls)")
                     # Just log that we're reusing, but don't add to conversation to save space
@@ -966,8 +1089,10 @@ Provide your validation result:
                 
                 # Update shared code with revised version for next test case
                 if execution['success'] and execution['final_code']:
+                    # Store the successful code, but remove test-case-specific paths
+                    # Next test case will have paths replaced via _replace_hardcoded_paths
                     shared_implementation['code'] = execution['final_code']
-                    if shared_validation.get('corrected_code'):
+                    if shared_validation is not None and shared_validation.get('corrected_code'):
                         shared_validation['corrected_code'] = execution['final_code']
                 if not execution['success']:
                     overall_success = False
@@ -1044,6 +1169,12 @@ def parse_option():
                        help='Enable stage timing for performance analysis')
     parser.add_argument('--disable_timing', dest='enable_timing', action='store_false',
                        help='Disable stage timing')
+    parser.add_argument('--excel-recalc', action='store_true', default=False,
+                       help='After Docker execution, open workbook in real Excel to force full recalc (dynamic arrays spill)')
+    parser.add_argument('--materialize-dynamic', action='store_true', default=False,
+                       help='With --excel-recalc: convert dynamic spill ranges to static values for openpyxl compatibility')
+    parser.add_argument('--strip-dynamic-formula', action='store_true', default=False,
+                       help='With --materialize-dynamic: replace source spill formula cell with its calculated value')
     
     return parser.parse_args()
 

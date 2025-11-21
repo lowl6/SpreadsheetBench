@@ -1,3 +1,4 @@
+# python evaluation/open_spreadsheet.py --dir_path "data/test1/outputs/sheetcopilot_glm-4.5-air"
 import os
 import argparse
 from win32com.client import Dispatch
