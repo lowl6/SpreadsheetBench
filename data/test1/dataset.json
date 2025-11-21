@@ -1,9 +1,36 @@
 [
+ {
+        "id": "79-7",
+        "instruction": "I am struggling to use VBA to find and replace all instances of double quotes with nothing across all columns in a worksheet, not just column A. My current code performs the replacement but it doesn't work as intended and I need assistance to fix this issue. Additionally, I have an attached file where I'm trying to apply this action.",
+        "spreadsheet_path": "spreadsheet/79-7",
+        "instruction_type": "Sheet-Level Manipulation",
+        "answer_position": "'Sheet1'!A1:A4",
+        "answer_sheet": "Sheet1",
+        "data_position": "A1:A4"
+    },
     {
-        "id": 57072,
-        "instruction": "How can I modify the XLOOKUP function in Excel so that it skips certain values returned based on additional criteria? Specifically, I want to avoid returning values where there is an unrelated comment in the lookup range (e.g., skipping comments in Column B of Sheet1) and instead ensure that the function only returns the value where the type is 'machine'. For example, I have an issue where the XLOOKUP is incorrectly returning 0 for an item code M023 instead of the correct score 450 due to an irrelevant comment being fetched.   My current formula is: XLOOKUP(\"*\"&A1&\"*\",Sheet1!A:A,Sheet1!D:D,\"\",2)",
-        "spreadsheet_path": "spreadsheet/57072",
+        "id": "315-23",
+        "instruction": "How can I quickly delete rows from an Excel dataset containing over 800,000 rows if a cell in a particular column (approverID) starts with 'PC', while retaining rows where the cell starts with 'PH'?",
+        "spreadsheet_path": "spreadsheet/315-23",
+        "instruction_type": "Sheet-Level Manipulation",
+        "answer_position": "A1:N53",
+        "answer_sheet": "Sheet1",
+        "data_position": "A1:N53"
+    },
+    {
+        "id": 37228,
+        "instruction": "How can I return the delivery window based on the specified window in Column E, handling stores with either one or two delivery windows without altering the existing string, using Excel formulas?",
+        "spreadsheet_path": "spreadsheet/37228",
         "instruction_type": "Cell-Level Manipulation",
-        "answer_position": "'Sheet2'!B1:B300"
+        "answer_position": "G2:G23"
+    },
+    {
+        "id": "239-25",
+        "instruction": "I attempted to create a macro to delete all items in column M of my 'Maturities' sheet where the ageing is less than or equal to 90 days. I programmed it to highlight the rows to be deleted, but when I ran the macro, no rows were removed. However, I was able to resolve the issue by modifying my code. The adjusted code correctly deletes the rows where the value in column M is less than or equal to 90.",
+        "spreadsheet_path": "spreadsheet/239-25",
+        "instruction_type": "Sheet-Level Manipulation",
+        "answer_position": "'Maturities'!A2:M10",
+        "answer_sheet": "Maturities",
+        "data_position": "A1:M10"
     }
 ]

@@ -7,9 +7,11 @@
 1. **Inference Layer** (`inference/`): LLM-based code generation with multi-round reasoning
    - Single-round baseline, Multi-round ReAct, SheetCopilot v1/v2 agents
    - All approaches generate Python code that manipulates Excel files via `openpyxl`
+   - **SheetCopilot v2** uses 6-stage pipeline: Observation → Understanding → Planning → Implementation → **Validation with Execution** → Final Execution & Revision
 2. **Execution Layer** (`code_exec_docker/`): Isolated Docker-based Python runtime
    - Jupyter kernel server running in container at `http://localhost:8080/execute`
    - Conversation-scoped kernels tracked by `conv_id` for stateful execution
+   - **Stage 5 Validation** now executes code early to verify results reasonableness before final execution
 3. **Evaluation Layer** (`evaluation/`): Windows-only Excel automation for ground truth comparison
    - Uses `win32com` to open/recalculate spreadsheets before comparing with `openpyxl`
    - Compares cell values, formulas, and formatting (fill colors, font colors)
@@ -44,8 +46,9 @@ cd inference
 .\scripts\inference_multiple_row_exec.ps1  # 5-row preview + error feedback
 .\scripts\inference_multiple_react_exec.ps1  # ReAct reasoning + error feedback
 
-# SheetCopilot v2 (6-stage enhanced agent):
-.\scripts\sheetcopilot_v2.ps1  # Observation→Understanding→Planning→Implementation→Validation→Execution
+# SheetCopilot v2 (6-stage enhanced agent with intelligent validation):
+.\scripts\sheetcopilot_v2.ps1  # Observation→Understanding→Planning→Implementation→Validation(Execute+Verify)→Final Execution
+# Key innovation: Stage 5 EXECUTES code and reads answer_position to verify reasonableness before final execution
 ```
 
 **Inference Outputs:**

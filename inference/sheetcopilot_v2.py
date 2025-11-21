@@ -591,84 +591,185 @@ except Exception as e:
     
     def stage_5_code_validation(self, implementation: Dict[str, Any],
                                observation: Dict[str, Any],
-                               plan: Dict[str, Any]) -> Dict[str, Any]:
+                               plan: Dict[str, Any],
+                               file_path: str, output_path: str,
+                               instruction: str, answer_position: str) -> Dict[str, Any]:
         """
-        Stage 5: Code Validation - Static analysis before execution
+        Stage 5: Code Validation - Execute and verify results
         
-        Check for common issues:
-        - Hardcoded cell references (should be dynamic)
-        - Missing error handling
-        - Incorrect sheet/range references
-        - Missing imports
-        - Syntax errors
+        NEW APPROACH:
+        1. Execute the generated code first
+        2. If successful, read the answer_position content from output
+        3. Let AI judge if results are reasonable given the instruction
+        4. If unreasonable or errors, provide corrected code
         """
         import time
+        import openpyxl
+        import re
         stage_start = time.time() if self.enable_timing else None
         
-        validation_prompt = f"""You are SheetCopilot v2 in CODE VALIDATION stage.
+        # Replace paths before execution
+        code_to_execute = self._replace_hardcoded_paths(implementation['code'], file_path, output_path)
+        
+        # Execute code first
+        self.logger.info("🔧 Executing code for validation...")
+        try:
+            exec_result = exec_code(self.client, code_to_execute)
+            self.logger.info(f"[VALIDATION EXECUTION OUTPUT]\n{exec_result}")
+            
+            has_error = 'Error' in exec_result or 'Traceback' in exec_result or '❌' in exec_result
+            
+            if has_error:
+                # Execution failed - do static validation only
+                validation_prompt = f"""You are SheetCopilot v2 in CODE VALIDATION stage.
 
+The code execution FAILED. Please identify and fix the errors.
 
-You need to review the generated code for common issues BEFORE execution.
+📋 **TASK**: {instruction}
 
-📋 **IMPLEMENTATION PLAN** (expected behavior):
+📊 **OBSERVED DATA**: 
+{observation['response'][:500]}
+
+📋 **IMPLEMENTATION PLAN**:
 {plan['response'][:600]}
 
-💻 **GENERATED CODE** (to be validated):
+💻 **GENERATED CODE** (has errors):
 ```python
 {implementation['code']}
 ```
 
-**VALIDATION CHECKLIST**:
-
-## 1. Dynamic References ✓/✗
-- [ ] No hardcoded A1, B2, etc. (should use observed positions)
-- [ ] Cell references match observation results
-- [ ] Sheet names are correctly extracted/used
-
-## 2. Error Handling ✓/✗
-- [ ] Has try-except block
-- [ ] Checks for None/empty cells before operations
-- [ ] Validates data types before arithmetic
-
-## 3. Imports ✓/✗
-- [ ] openpyxl imported
-- [ ] Any regex → import re
-- [ ] Other required libraries imported
-
-## 4. File I/O ✓/✗
-- [ ] Loads correct input file
-- [ ] Saves to correct output file
-- [ ] Closes workbook properly
-
-## 5. Logic Correctness ✓/✗
-- [ ] Implements planned steps in correct order
-- [ ] Target cells match answer_position specification
-- [ ] Business logic matches requirements
-
-## 6. Circular Reference Check ✓/✗
-- [ ] NO formulas reference their own target cell
-- [ ] NO circular dependencies between target cells
-- [ ] Formulas only reference INPUT cells, not OUTPUT cells
-
-## 7. Excel Formula Syntax ✓/✗
-- [ ] NO unnecessary @ prefix (e.g., @XLOOKUP should be XLOOKUP, @Sheet1 should be Sheet1)
-- [ ] String concatenation uses correct syntax: "text"&cell&"text" NOT "text&cell&text"
-- [ ] Array formulas use correct syntax (IF arrays, FILTER, etc.)
-- [ ] Function names are spelled correctly (XLOOKUP, VLOOKUP, INDEX, MATCH, etc.)
-- [ ] Function arguments are in correct order and data types
-
-## 8. Edge Cases ✓/✗
-- [ ] Handles empty cells
-- [ ] Handles merged cells (if applicable)
-- [ ] Handles single cell vs range
+❌ **EXECUTION ERROR**:
+```
+{exec_result}
+```
 
 **YOUR TASK**:
-1. Review code against each checklist item
-2. Identify ANY issues or potential bugs
-3. If issues found, provide CORRECTED code
-4. If code is perfect, respond with "VALIDATION PASSED"
+1. Analyze the error message and traceback
+2. Identify the root cause (e.g., hardcoded references, None values, index errors)
+3. Provide CORRECTED code that fixes all issues
+
+Provide the corrected code:
+"""
+                
+            else:
+                # Execution succeeded - verify result content
+                output_local = output_path.replace('/mnt/data/', '../data/')
+                
+                # Read answer_position content from output file
+                answer_content = "Could not read output file"
+                try:
+                    if os.path.exists(output_local):
+                        wb = openpyxl.load_workbook(output_local)
+                        
+                        # Parse answer_position to get sheet and range
+                        sheet_match = re.match(r"'([^']+)'!(.+)", answer_position)
+                        if sheet_match:
+                            sheet_name = sheet_match.group(1)
+                            cell_range = sheet_match.group(2)
+                            ws = wb[sheet_name]
+                        else:
+                            cell_range = answer_position
+                            ws = wb.active
+                        
+                        # Read cell values
+                        if ':' in cell_range:
+                            # Range like H3:H5
+                            answer_values = []
+                            for row in ws[cell_range]:
+                                for cell in row:
+                                    answer_values.append(f"{cell.coordinate}: {cell.value}")
+                            answer_content = '\n'.join(answer_values)
+                        else:
+                            # Single cell like H3
+                            cell = ws[cell_range]
+                            answer_content = f"{cell.coordinate}: {cell.value}"
+                        
+                        wb.close()
+                except Exception as e:
+                    answer_content = f"Error reading output: {str(e)}"
+                
+                validation_prompt = f"""You are SheetCopilot v2 in CODE VALIDATION stage.
+
+The code executed SUCCESSFULLY. Now verify if the results are REASONABLE.
+
+📋 **ORIGINAL TASK**: {instruction}
+
+📊 **OBSERVED INPUT DATA**: 
+{observation['response'][:500]}
+
+📋 **IMPLEMENTATION PLAN**:
+{plan['response'][:600]}
+
+💻 **EXECUTED CODE**:
+```python
+{implementation['code']}
+```
+
+✅ **EXECUTION OUTPUT**:
+```
+{exec_result}
+```
+
+📊 **RESULT IN ANSWER POSITION** ({answer_position}):
+```
+{answer_content}
+```
+
+**YOUR TASK**:
+1. Check if the results in answer_position are REASONABLE given the task
+2. Verify the results match the expected business logic
+3. Check for common issues:
+   - Wrong values (e.g., all zeros, all same values)
+   - Wrong format (e.g., numbers instead of text, or vice versa)
+   - Missing values (e.g., empty cells when values expected)
+   - Wrong logic (e.g., MIN instead of MAX, wrong column headers)
+   - Circular references in formulas
+
+**RESPOND IN ONE OF TWO WAYS**:
+
+Option A - If results look CORRECT and REASONABLE:
+```
+VALIDATION PASSED
+
+The results are correct because:
+- [explain why the values make sense]
+- [verify they match the task requirements]
+```
+
+Option B - If results look WRONG or UNREASONABLE:
+```
+VALIDATION FAILED
+
+Issues found:
+1. [describe what's wrong with the results]
+2. [explain why it doesn't match requirements]
+
+CORRECTED CODE:
+```python
+[provide fixed code]
+```
+```
 
 Provide your validation result:
+"""
+        
+        except Exception as e:
+            exec_result = f"Exception during validation execution: {str(e)}"
+            validation_prompt = f"""You are SheetCopilot v2 in CODE VALIDATION stage.
+
+Code execution raised an EXCEPTION. Please fix the code.
+
+💻 **CODE** (has issues):
+```python
+{implementation['code']}
+```
+
+❌ **EXCEPTION**:
+```
+{exec_result}
+```
+
+Provide CORRECTED code:
 """
         
         self.logger.debug(f"[VALIDATION PROMPT]\n{validation_prompt}")
@@ -689,7 +790,7 @@ Provide your validation result:
             stage_time = time.time() - stage_start
             self.stage_timings['stage_5_validation'] = stage_time
             self.log_stage("5️⃣ CODE VALIDATION", 
-                          "Static analysis and pre-execution checks", 
+                          "Execute and verify results reasonableness", 
                           stage_time)
         
         return {
@@ -697,6 +798,7 @@ Provide your validation result:
             'response': response,
             'passed': validation_passed,
             'corrected_code': corrected_code,
+            'execution_result': exec_result,
             'issues_found': self._extract_issues(response)
         }
     
@@ -1053,9 +1155,11 @@ Provide your validation result:
                         )
                         conversation.append(f"[Stage 4 Implementation completed - Code length: {len(shared_implementation['code'])} chars]")
 
-                        # Stage 5: Code Validation
+                        # Stage 5: Code Validation (with execution and result verification)
                         shared_validation = self.stage_5_code_validation(
-                            shared_implementation, observation, shared_plan
+                            shared_implementation, observation, shared_plan,
+                            input_path, output_path,
+                            task_data['instruction'], task_data['answer_position']
                         )
                         conversation.append(f"[Stage 5 Validation: {'PASSED' if shared_validation['passed'] else 'ISSUES FOUND'}]")
                     
