@@ -1,0 +1,12 @@
+[2025-11-24 18:57:22] [INFO] [main]
+Starting SheetCopilot v2 with config: Namespace(model='glm-4.5-air', api_key='a3965f9fb7c14f6f8fac15bd076ee71b.omaVemiLXaga5JXg', base_url='https://open.bigmodel.cn/api/paas/v4/', dataset='test1', code_exec_url='http://localhost:8080/execute', conv_id='COPILOT', max_revisions=3, log_dir='../log', enable_timing=True, debug=True, excel_recalc=True, materialize_dynamic=True, strip_dynamic_formula=True)
+
+[2025-11-24 18:57:22] [INFO] [main]
+Loaded 2 tasks from test1
+
+[2025-11-24 18:57:22] [INFO] [solve_task]
+
+============================================================
+🚀 Task 39180
+============================================================
+

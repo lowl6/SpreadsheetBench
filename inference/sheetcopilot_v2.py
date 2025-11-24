@@ -615,17 +615,29 @@ wb.close()
                             cell_range = answer_position
                             ws_input = wb_input.active
                         
-                        # Collect input answer values
+                        # Collect input answer values - handle both single cell and range
                         input_coords_lines = []
                         input_has_formulas = False
-                        for row in ws_input[cell_range]:
-                            for cell in row:
-                                if hasattr(cell, 'data_type') and cell.data_type == 'f':
-                                    input_coords_lines.append(f"{cell.coordinate}: FORMULA = {cell.value}")
-                                    input_has_formulas = True
-                                else:
-                                    input_coords_lines.append(f"{cell.coordinate}: {cell.value}")
-                                input_answer_values_raw.append(cell.value)
+                        input_cell_or_range = ws_input[cell_range]
+                        
+                        if hasattr(input_cell_or_range, 'coordinate'):
+                            # Single cell
+                            if hasattr(input_cell_or_range, 'data_type') and input_cell_or_range.data_type == 'f':
+                                input_coords_lines.append(f"{input_cell_or_range.coordinate}: FORMULA = {input_cell_or_range.value}")
+                                input_has_formulas = True
+                            else:
+                                input_coords_lines.append(f"{input_cell_or_range.coordinate}: {input_cell_or_range.value}")
+                            input_answer_values_raw.append(input_cell_or_range.value)
+                        else:
+                            # Range
+                            for row in input_cell_or_range:
+                                for cell in row:
+                                    if hasattr(cell, 'data_type') and cell.data_type == 'f':
+                                        input_coords_lines.append(f"{cell.coordinate}: FORMULA = {cell.value}")
+                                        input_has_formulas = True
+                                    else:
+                                        input_coords_lines.append(f"{cell.coordinate}: {cell.value}")
+                                    input_answer_values_raw.append(cell.value)
                         
                         input_answer_content = '\n'.join(input_coords_lines)
                         input_non_empty = [v for v in input_answer_values_raw if v not in (None, "")]
@@ -676,24 +688,156 @@ wb.close()
                         end_col_letters, end_row_num = _split_ref(end_ref)
                         start_col_idx = _col_letter_to_index(start_col_letters)
                         end_col_idx = _col_letter_to_index(end_col_letters)
-                        # Collect values
-                        for row in ws[cell_range]:
-                            for cell in row:
-                                answer_values_raw.append(cell.value)
-                        # Build formatted content listing coordinate:value (detect formulas)
+                        # Collect values - handle both single cell and range
+                        cell_or_range = ws[cell_range]
                         coords_lines = []
                         has_formulas = False
-                        for row in ws[cell_range]:
-                            for cell in row:
-                                if hasattr(cell, 'data_type') and cell.data_type == 'f':
-                                    coords_lines.append(f"{cell.coordinate}: FORMULA = {cell.value}")
-                                    has_formulas = True
-                                else:
-                                    coords_lines.append(f"{cell.coordinate}: {cell.value}")
+                        
+                        # Check if it's a single cell (not iterable) or a range
+                        if hasattr(cell_or_range, 'coordinate'):
+                            # Single cell
+                            answer_values_raw.append(cell_or_range.value)
+                            if hasattr(cell_or_range, 'data_type') and cell_or_range.data_type == 'f':
+                                coords_lines.append(f"{cell_or_range.coordinate}: FORMULA = {cell_or_range.value}")
+                                has_formulas = True
+                            else:
+                                coords_lines.append(f"{cell_or_range.coordinate}: {cell_or_range.value}")
+                        else:
+                            # Range - iterate through rows
+                            for row in cell_or_range:
+                                for cell in row:
+                                    answer_values_raw.append(cell.value)
+                                    if hasattr(cell, 'data_type') and cell.data_type == 'f':
+                                        coords_lines.append(f"{cell.coordinate}: FORMULA = {cell.value}")
+                                        has_formulas = True
+                                    else:
+                                        coords_lines.append(f"{cell.coordinate}: {cell.value}")
                         answer_content = '\n'.join(coords_lines)
                         non_empty = [v for v in answer_values_raw if v not in (None, "")]
                         unique_vals = set(non_empty)
                         numeric_vals = [float(v) for v in non_empty if isinstance(v, (int,float))]
+                        
+                        # NEW: Calculate formulas and verify results if formulas detected
+                        calculated_values = []
+                        calculated_coords_lines = []
+                        suspicious_patterns = []
+                        
+                        if has_formulas:
+                            try:
+                                # Close current workbook before Excel calculation
+                                wb.close()
+                                
+                                # Calculate formulas using Excel COM
+                                calculate_formulas(output_local)
+                                
+                                # Reopen and read calculated values with data_only=True
+                                wb_calc = openpyxl.load_workbook(output_local, data_only=True)
+                                if sheet_match:
+                                    ws_calc = wb_calc[sheet_name]
+                                else:
+                                    ws_calc = wb_calc.active
+                                
+                                # Handle both single cell and range
+                                calc_cell_or_range = ws_calc[cell_range]
+                                if hasattr(calc_cell_or_range, 'coordinate'):
+                                    # Single cell
+                                    calc_val = calc_cell_or_range.value
+                                    calculated_values.append(calc_val)
+                                    calculated_coords_lines.append(f"{calc_cell_or_range.coordinate}: {calc_val}")
+                                else:
+                                    # Range
+                                    for row in calc_cell_or_range:
+                                        for cell in row:
+                                            calc_val = cell.value
+                                            calculated_values.append(calc_val)
+                                            calculated_coords_lines.append(f"{cell.coordinate}: {calc_val}")
+                                
+                                wb_calc.close()
+                                
+                                # Detect suspicious patterns in calculated results
+                                calc_numeric = [float(v) for v in calculated_values if isinstance(v, (int, float)) and v is not None]
+                                
+                                # Pattern 1: All zeros (likely wrong column reference)
+                                if calc_numeric and all(v == 0 for v in calc_numeric):
+                                    suspicious_patterns.append("⚠️ ALL_ZEROS: All calculated numeric values are 0 - formula may reference wrong column or empty data")
+                                
+                                # Pattern 2: All identical non-zero values
+                                if calc_numeric and len(set(calc_numeric)) == 1 and calc_numeric[0] != 0 and len(calc_numeric) > 1:
+                                    suspicious_patterns.append(f"⚠️ ALL_SAME: All {len(calc_numeric)} values are identical ({calc_numeric[0]}) - may indicate formula copy error")
+                                
+                                # Pattern 3: Expected non-empty but got empty/zero
+                                if not calc_numeric and non_empty:
+                                    suspicious_patterns.append("⚠️ EMPTY_RESULT: Formula exists but calculated to empty/None - check formula validity")
+                                
+                                # Pattern 4: Check for invalid @ symbol in formula
+                                if has_formulas:
+                                    for formula_line in coords_lines:
+                                        if 'FORMULA =' in formula_line:
+                                            formula_text = formula_line.split('FORMULA =')[1].strip()
+                                            if '@' in formula_text:
+                                                suspicious_patterns.append(
+                                                    f"⚠️ INVALID_AT_SYMBOL: Formula contains '@' (implicit intersection operator) which is invalid: {formula_text[:100]}. "
+                                                    f"Remove all @ symbols. If comparing two ranges (e.g., A=C), use SUMPRODUCT(--(A3:A57=C3:C57), B3:B57) instead of SUMIFS."
+                                                )
+                                
+                                # Pattern 5: Check if sum_range points to text column (CRITICAL for lookup/sum tasks)
+                                if calc_numeric and all(v == 0 for v in calc_numeric) and has_formulas:
+                                    # Extract formula text to analyze sum_range
+                                    for formula_line in coords_lines:
+                                        if 'FORMULA =' in formula_line:
+                                            formula_text = formula_line.split('FORMULA =')[1].strip()
+                                            # Check for SUM/SUMIF/SUMIFS patterns - extract first range (sum_range)
+                                            sum_match = re.search(r'SUM(?:IF|IFS)?\s*\(\s*([A-Z]+\d+:[A-Z]+\d+)', formula_text, re.IGNORECASE)
+                                            if sum_match:
+                                                sum_range = sum_match.group(1)
+                                                # Check data type in sum_range by sampling
+                                                try:
+                                                    range_match = re.match(r'([A-Z]+)(\d+):([A-Z]+)(\d+)', sum_range)
+                                                    if range_match:
+                                                        col_letter = range_match.group(1)
+                                                        start_row = int(range_match.group(2))
+                                                        # Sample first 3 non-empty cells to check type
+                                                        sample_vals = []
+                                                        for r in range(start_row, min(start_row + 10, start_row + 50)):
+                                                            try:
+                                                                val = ws_calc[f'{col_letter}{r}'].value
+                                                                if val is not None:
+                                                                    sample_vals.append(val)
+                                                                    if len(sample_vals) >= 3:
+                                                                        break
+                                                            except:
+                                                                pass
+                                                        # Check if mostly text (>50% text values)
+                                                        if sample_vals:
+                                                            text_count = sum(1 for v in sample_vals if isinstance(v, str))
+                                                            if text_count / len(sample_vals) > 0.5:
+                                                                suspicious_patterns.append(
+                                                                    f"⚠️ TEXT_COLUMN_SUM: Formula tries to sum TEXT column {sum_range}! "
+                                                                    f"Sample values: {sample_vals[:3]}. Result is 0 because text cannot be summed. "
+                                                                    f"For lookup/sum tasks, verify you're summing the NUMERIC VALUE column, not the TEXT LABEL column."
+                                                                )
+                                                except Exception as e:
+                                                    pass
+                                            break
+                                
+                                # Reopen for further processing (without data_only)
+                                wb = openpyxl.load_workbook(output_local, data_only=False)
+                                if sheet_match:
+                                    ws = wb[sheet_name]
+                                else:
+                                    ws = wb.active
+                                    
+                            except Exception as calc_error:
+                                suspicious_patterns.append(f"⚠️ CALC_ERROR: Formula calculation failed: {str(calc_error)[:100]}")
+                                calculated_values = ["[Calculation Error]"]
+                                calculated_coords_lines = [f"Error: {str(calc_error)[:100]}"]
+                        
+                        # Check for suspicious patterns even if no formulas (static values)
+                        if not has_formulas and numeric_vals:
+                            # Pattern: Static zero value for summation tasks
+                            if all(v == 0 for v in numeric_vals) and ('sum' in instruction.lower() or 'total' in instruction.lower()):
+                                suspicious_patterns.append("⚠️ STATIC_ZERO: Wrote static value 0 for summation task - may have summed wrong column or text data")
+                        
                         summary_json = {
                             "total_cells": len(answer_values_raw),
                             "non_empty_count": len(non_empty),
@@ -704,6 +848,9 @@ wb.close()
                             "numeric_min": min(numeric_vals) if numeric_vals else None,
                             "numeric_max": max(numeric_vals) if numeric_vals else None,
                             "numeric_mean": (sum(numeric_vals)/len(numeric_vals)) if numeric_vals else None,
+                            "calculated_values": calculated_values[:10] if calculated_values else None,
+                            "calculated_content": '\n'.join(calculated_coords_lines[:10]) if calculated_coords_lines else None,
+                            "suspicious_patterns": suspicious_patterns if suspicious_patterns else None,
                         }
                         # Neighbor column leak detection (only if single column range)
                         if start_col_idx == end_col_idx:
