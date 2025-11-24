@@ -3,6 +3,7 @@ conda create -n spreadsheetbench python=3.11
 
 wsl
 conda activate ssb
+
 cd inference&&bash scripts/inference_single.sh
 
 cd inference&&.\scripts\inference_single.ps1

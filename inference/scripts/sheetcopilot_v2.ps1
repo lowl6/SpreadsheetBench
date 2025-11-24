@@ -17,6 +17,7 @@ python sheetcopilot_v2.py `
     --code_exec_url http://localhost:8080/execute `
     --conv_id COPILOT `
     --log_dir "../log" `
+    --debug `
     --excel-recalc `
     --materialize-dynamic `
     --strip-dynamic-formula
