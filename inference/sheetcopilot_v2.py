@@ -20,6 +20,15 @@ from llm_api import get_llm_response
 from code_exec import get_exec_client, extract_code, exec_code
 from excel_calculator import calculate_formulas
 from excel_recalc import recalc_workbook
+from stage_prompts import (
+    build_stage1_summary,
+    build_stage2_prompt,
+    build_stage3_prompt,
+    build_stage4_prompt,
+    build_stage5_failure_prompt,
+    build_stage5_success_prompt,
+    build_stage6_revision_prompt,
+)
 
 
 def setup_logger(log_dir: str, model_name: str, dataset_name: str = None) -> logging.Logger:
@@ -357,16 +366,13 @@ wb.close()
             success = False
         
         # Create a summary prompt for context (used in later stages)
-        observation_summary = f"""📊 SPREADSHEET OBSERVATION COMPLETED
-
-🎯 Task: {instruction}
-📋 Type: {instruction_type}
-🎯 Target: {answer_position}
-📂 File: {file_path}
-
-Observation Results:
-{result}
-"""
+        observation_summary = build_stage1_summary(
+            instruction=instruction,
+            instruction_type=instruction_type,
+            answer_position=answer_position,
+            file_path=file_path,
+            observation_result=result,
+        )
 
         if self.enable_timing:
             stage_time = time.time() - stage_start
@@ -403,44 +409,11 @@ Observation Results:
         if self.debug:
             print(f"\n[DEBUG] 🚀 Starting Stage 2: Instruction Understanding")
         
-        understanding_prompt = f"""You are SheetCopilot v2 in INSTRUCTION UNDERSTANDING stage.
-
-
-This is a REAL-WORLD user question from Excel forums. Your task is to extract the CORE requirements.
-
-📝 **ORIGINAL INSTRUCTION** (may be long and informal):
-{instruction}
-
-📊 **SPREADSHEET STRUCTURE** (from observation):
-{observation['result'][:1200]}  # Truncate for LLM prompt (increased to include format reference)
-
-🎯 **TASK TYPE**: {instruction_type}
-
-💡 **IMPORTANT**: Check if "ANSWER POSITION CURRENT CONTENT" section shows existing data - if yes, this is a FORMAT REFERENCE showing the expected output format (data type, number format, formula style, etc.). Your solution MUST preserve this format.
-
-**YOUR ANALYSIS TASK**:
-Break down this real-world instruction into structured requirements:
-
-## 1. Core Objective
-What is the PRIMARY goal? (in one clear sentence)
-
-## 2. Input Data Location
-- Which cells/ranges contain the INPUT data?
-- Are there multiple source locations?
-- What format is the input data? (numbers, text, formulas, etc.)
-
-## 3. Output Requirements
-- Where should results be written? (target cells)
-- What format should output be? (formula, value, formatting, etc.)
-- Any specific output constraints?
-
-## 4. Business Logic
-- What calculation/operation is needed?
-- Any conditions or criteria to apply?
-- Special cases or edge cases mentioned?
-
-Provide your structured analysis:
-"""
+        understanding_prompt = build_stage2_prompt(
+            instruction=instruction,
+            instruction_type=instruction_type,
+            observation_result=observation['result'][:1200],  # 已截断
+        )
         
         # Generate understanding (logging disabled for brevity)
         response = get_llm_response(
@@ -483,84 +456,13 @@ Provide your structured analysis:
         if self.debug:
             print(f"\n[DEBUG] 🚀 Starting Stage 3: Solution Planning")
         
-        planning_prompt = f"""You are SheetCopilot v2 in SOLUTION PLANNING stage.
-
-
-📊 **SPREADSHEET FACTS** (non-standard structure):
-{observation['result'][:1000]}  # Truncated (increased to include format reference)
-
-🎯 **UNDERSTOOD REQUIREMENTS**:
-{understanding['response'][:800]}  # Truncated
-
-📂 **FILE PATHS**:
-- Input: {file_path}
-- Output: {output_path}
-- Target cells: {answer_position}
-
-💡 **FORMAT REFERENCE**: If observation shows existing data in answer position, PRESERVE that format (data type, number format, formula vs value). This is critical for correctness!
-
-**YOUR PLANNING TASK**:
-Design a step-by-step implementation plan that handles NON-STANDARD spreadsheet formats.
-
-## Implementation Plan Template:
-
-### Step 1: Load and Validate
-```
-- Load workbook from {file_path}
-- Identify target sheet (handle multi-sheet case)
-- Validate target range {answer_position} exists
-- Check for merged cells or formatting in target area
-```
-
-### Step 2: Locate Input Data (DYNAMIC, not hardcoded!)
-```
-- Based on observation, input data is at: [SPECIFY ACTUAL LOCATION]
-- NOT assuming A1 start!
-- Handle empty cells: [STRATEGY]
-- Account for non-standard table boundaries
-```
-
-### Step 3: Extract and Process
-```
-- Read input data using dynamic references
-- Data type conversions needed: [SPECIFY]
-- Handle edge cases: empty cells, merged cells, formulas vs values
-- Validation checks before processing
-```
-
-### Step 4: Apply Business Logic
-```
-- Core operation: [DESCRIBE CLEARLY]
-- Formula structure (if applicable): [FORMULA]
-- Calculation steps: [ENUMERATE]
-- Condition handling: [IF ANY]
-```
-
-### Step 5: Write Results
-```
-- Target cells: {answer_position}
-- Write as: [FORMULA or VALUE or FORMATTED_VALUE]
-- Preserve existing formatting: [YES/NO]
-- Handle multiple target cells: [STRATEGY]
-```
-
-### Step 6: Save and Verify
-```
-- Save to {output_path}
-- Verify write succeeded
-- Close workbook properly
-```
-
-## Risk Mitigation:
-- ❌ AVOID: Hardcoding cell references like A1, B2
-- ✅ USE: Dynamic references based on observation results
-- ❌ AVOID: Assuming headers in row 1
-- ✅ USE: Actual header locations from analysis
-- ❌ AVOID: Ignoring empty cells
-- ✅ USE: Explicit null/empty checks
-
-Provide your COMPLETE plan with SPECIFIC cell references based on the observation:
-"""
+        planning_prompt = build_stage3_prompt(
+            observation_result=observation['result'][:1000],
+            understanding_result=understanding['response'][:800],
+            file_path=file_path,
+            output_path=output_path,
+            answer_position=answer_position,
+        )
         
         # Generate plan (logging disabled for brevity)
         messages = [
@@ -605,144 +507,14 @@ Provide your COMPLETE plan with SPECIFIC cell references based on the observatio
         if self.debug:
             print(f"\n[DEBUG] 🚀 Starting Stage 4: Code Implementation")
         
-        implementation_prompt = f"""You are SheetCopilot v2 in CODE IMPLEMENTATION stage.
-
-
-📊 **OBSERVED STRUCTURE**:
-{observation['result'][:1000]}  # Truncated (increased to include format reference)
-
-🎯 **REQUIREMENTS SUMMARY**:
-{understanding['response'][:800]}
-
-📋 **IMPLEMENTATION PLAN**:
-{plan['response']}
-
-**YOUR CODING TASK**:
-Write COMPLETE, PRODUCTION-READY Python code following the plan above.
-
-**🎯 FORMAT & DATA TYPE PRESERVATION (CRITICAL)**:
-✅ Check observation's "ANSWER POSITION CURRENT CONTENT" section
-✅ If it shows existing data, this is your FORMAT REFERENCE - match it exactly:
-   
-   **FORMULAS vs VALUES (MOST CRITICAL)**:
-   - If shows "FORMULA PATTERN DETECTED" → MUST write FORMULA STRINGS (not computed values)
-   - If shows "FORMULA = ..." → This is a STRING starting with "=", NOT a computed value
-   - Writing formulas: `cell.value = '=IF(A1>0, "Yes", "No")'`  ← String literal
-   - Writing values: `cell.value = "Yes"` or `cell.value = 123`  ← Plain data
-   
-   **DATA TYPE ANALYSIS**:
-   - Observation shows "DATA TYPE OF REFERENCED CELLS" → use this to understand input types
-   - If referenced cells are strings → formula should handle strings
-   - If referenced cells are numbers → formula should handle numeric operations
-   - Match the data type pattern observed in input answer column
-   
-   **FORMULA PATTERN REPLICATION**:
-   - Example: If reference shows "FORMULA = =IF(E2="","", TRIM(LEFT(E2,...)))", your code should:
-     1. Analyze: Formula references E2 (same row), checks if empty, then extracts substring
-     2. Generate similar formula for each target row with RELATIVE references:
-        * Row 2: `=IF(E2="","", TRIM(LEFT(E2,...)))`
-        * Row 3: `=IF(E3="","", TRIM(LEFT(E3,...)))`
-     3. Write formula STRING to cell.value: `ws.cell(row=2, column=7).value = '=IF(E2=...)'`
-   
-   **PLAIN VALUE PATTERN**:
-   - Example: If reference shows "VALUE = 123 (type=int)" → write computed integers
-   - Example: If reference shows "VALUE = 'text' (type=str)" → write computed strings
-
-**CRITICAL REQUIREMENTS**:
-✅ Use openpyxl library (already installed in Docker environment)
-✅ NO hardcoded cell references - use DYNAMIC references from observation
-✅ Handle empty cells explicitly (check `if cell.value is not None`)
-✅ Include try-except for robust error handling
-✅ Use actual sheet names and cell ranges from observation
-✅ Support non-standard table positions
-✅ Load from: {file_path}
-✅ Save to: {output_path}
-✅ Target cells: {answer_position}
-
-🚫 **PROHIBITIONS (STRUCTURAL SAFETY)**:
-❌ Do NOT create or copy to a temporary "helper" column and then delete it (e.g. copying G to H and calling `ws.delete_cols`).
-❌ Do NOT call `ws.delete_cols()` unless the task explicitly requires column removal from the dataset semantics.
-❌ Do NOT insert phantom columns just to preserve original values for a later formula.
-✅ If you need the original cell value before overwriting, read it into a Python variable (e.g. `orig_val = ws.cell(row, col).value`) and then assign the final computed value back.
-✅ Prefer computing final results in Python and writing plain values (avoid volatile formulas unless the instruction explicitly demands formulas as output).
-✅ Avoid patterns that reference a column that will be deleted in the same script.
-
-⚠️ **CRITICAL: AVOID CIRCULAR REFERENCES!**
-❌ DO NOT write formulas that reference the target cell itself
-❌ DO NOT create circular dependencies between target cells
-❌ Example: If target is H3, do NOT use H3 in the formula
-✅ Only reference INPUT data cells, never OUTPUT target cells
-
-⚠️ **EXCEL FORMULA SYNTAX RULES** (when writing formulas to cells):
-❌ WRONG: =@XLOOKUP(...) or @Sheet1!A1    → NO @ prefix before function names or sheet names
-✅ CORRECT: =XLOOKUP(...) or Sheet1!A1
-
-❌ WRONG: ="*&A1&*"                        → String literal cannot contain & without quotes
-✅ CORRECT: ="*"&A1&"*"                    → Concatenate with & outside quotes
-
-❌ WRONG: =IF(@B:B="value",A:A,"")         → NO @ prefix in array formulas
-✅ CORRECT: =IF(B:B="value",A:A,"")        → Clean array formula syntax
-
-When writing Excel formulas in Python code:
-```python
-# Correct string concatenation in formulas
-cell.value = '="*"&A1&"*"'              # NOT '="*&A1&*"'
-cell.value = '=XLOOKUP("*"&A1&"*",...)'  # NOT '=@XLOOKUP("*&A1&*",...)'
-```
-
-**CODE TEMPLATE** (adapt to your specific task):
-```python
-import openpyxl
-from openpyxl.utils import get_column_letter, column_index_from_string
-import re
-
-try:
-    # 1. Load workbook
-    print("Loading workbook...")
-    wb = openpyxl.load_workbook('{file_path}')
-    
-    # 2. Get target sheet (handle sheet name in answer_position)
-    target_str = "{answer_position}"
-    sheet_match = re.match(r"'([^']+)'!(.+)", target_str)
-    if sheet_match:
-        sheet_name = sheet_match.group(1)
-        target_range = sheet_match.group(2)
-        ws = wb[sheet_name]
-        print(f"Working on sheet: {{sheet_name}}")
-    else:
-        ws = wb.active
-        target_range = target_str
-    
-    # 3. Parse target range (e.g., "A1:B10" or "C5")
-    # Implement based on your plan
-    
-    # 4. Locate input data (DYNAMIC - from observation!)
-    # Based on observation results, input data is at: [FILL FROM OBSERVATION]
-    
-    # 5. Read input data with null checks
-    # for cell in ws[...]:
-    #     if cell.value is not None:
-    #         ...
-    
-    # 6. Process data (implement business logic)
-    # [YOUR CORE LOGIC HERE]
-    
-    # 7. Write results to target cells
-    # Handle both single cell and range cases
-    
-    # 8. Save output
-    wb.save('{output_path}')
-    wb.close()
-    print(f"✅ Successfully saved to {output_path}")
-    
-except Exception as e:
-    print(f"❌ Error: {{str(e)}}")
-    import traceback
-    traceback.print_exc()
-```
-
-**Generate COMPLETE implementation code now:**
-"""
+        implementation_prompt = build_stage4_prompt(
+            observation_result=observation['result'][:1000],
+            understanding_result=understanding['response'][:800],
+            planning_result=plan['response'],
+            file_path=file_path,
+            output_path=output_path,
+            answer_position=answer_position,
+        )
         
         # Generate implementation (prompt logging disabled)
         messages = [
@@ -810,35 +582,13 @@ except Exception as e:
             
             if has_error:
                 # Execution failed - do static validation only
-                validation_prompt = f"""You are SheetCopilot v2 in CODE VALIDATION stage.
-
-The code execution FAILED. Please identify and fix the errors.
-
-📋 **TASK**: {instruction}
-
-📊 **OBSERVED DATA**: 
-{observation['response'][:500]}
-
-📋 **IMPLEMENTATION PLAN**:
-{plan['response'][:600]}
-
-💻 **GENERATED CODE** (has errors):
-```python
-{implementation['code']}
-```
-
-❌ **EXECUTION ERROR**:
-```
-{exec_result}
-```
-
-**YOUR TASK**:
-1. Analyze the error message and traceback
-2. Identify the root cause (e.g., hardcoded references, None values, index errors)
-3. Provide CORRECTED code that fixes all issues
-
-Provide the corrected code:
-"""
+                validation_prompt = build_stage5_failure_prompt(
+                    instruction=instruction,
+                    observation_result=observation['response'][:500],
+                    planning_result=plan['response'][:600],
+                    generated_code=implementation['code'],
+                    execution_error=exec_result,
+                )
                 
             else:
                 # Execution succeeded - verify result content and build rich feedback
@@ -980,146 +730,29 @@ Provide the corrected code:
                 answer_summary_block = _json.dumps(summary_json, ensure_ascii=False, indent=2)
                 input_summary_block = _json.dumps(input_summary_json, ensure_ascii=False, indent=2)
                 neighbor_alert_block = _json.dumps(neighbor_alert, ensure_ascii=False, indent=2) if neighbor_alert else "None"
-                validation_prompt = f"""You are SheetCopilot v2 in CODE VALIDATION stage.
-
-The code executed SUCCESSFULLY. Evaluate the semantic correctness of results.
-
-📋 **ORIGINAL TASK**: {instruction}
-
-📊 **OBSERVED INPUT (truncated, CHECK FORMAT REFERENCE)**:
-{observation['response'][:600]}
-
-📋 **IMPLEMENTATION PLAN (truncated)**:
-{plan['response'][:600]}
-
-💻 **EXECUTED CODE**:
-```python
-{implementation['code']}
-```
-
-✅ **RAW EXECUTION STDOUT/LOG OUTPUT**:
-```
-{exec_result}
-```
-
-🎯 **INPUT ANSWER COLUMN PATTERN (GROUND TRUTH REFERENCE in {answer_position})**:
-```
-{input_answer_content[:800]}
-```
-
-📊 **INPUT ANSWER SUMMARY**:
-```json
-{input_summary_block}
-```
-
-📌 **OUTPUT RESULT CELLS (Generated by your code in {answer_position})**:
-```
-{answer_content[:800]}
-```
-
-📊 **OUTPUT RESULT SUMMARY**:
-```json
-{answer_summary_block}
-```
-
-🛑 **NEIGHBOR COLUMN LEAK CHECK (right column)**:
-```json
-{neighbor_alert_block}
-```
-
-**EVALUATION INSTRUCTIONS (CRITICAL - FOLLOW EXACTLY)**:
-
-1. **DISCOVER INPUT PATTERN (HIGHEST PRIORITY)**:
-   - Analyze the "INPUT ANSWER COLUMN PATTERN" section carefully
-   - What format does it show? Formulas (=IF, =VLOOKUP, etc.) or plain values?
-   - If formulas: What formula pattern? (e.g., all rows use =IF with same structure)
-   - If plain values: What DATA TYPE? (numeric, text, dates, percentages)
-   - Is there case sensitivity? (UPPER/lower/Mixed)
-   - Are there delimiters? (comma, space, etc.)
-   
-2. **DATA TYPE VALIDATION (CRITICAL)**:
-   - Check INPUT ANSWER SUMMARY → "has_formulas" field
-   - If has_formulas=true → INPUT cells contain FORMULA STRINGS (start with =)
-   - If has_formulas=false → INPUT cells contain PLAIN VALUES
-   - **KEY RULE**: OUTPUT must match INPUT's data type (formula vs value)
-   - Look at "sample_values" to see actual content type
-   
-3. **COMPARE WITH USER INTENT**:
-   - Does the task instruction ask for formulas or values?
-   - Does the input pattern match what user expects?
-   - **KEY INSIGHT**: Input pattern shows the DESIRED OUTPUT FORMAT!
-   - If observation shows "FORMULA PATTERN DETECTED" → verify INPUT has formulas
-   
-4. **VALIDATE OUTPUT AGAINST INPUT PATTERN**:
-   - Compare OUTPUT RESULT SUMMARY with INPUT ANSWER SUMMARY:
-     * has_formulas field must match
-     * If INPUT has_formulas=true but OUTPUT has_formulas=false → CRITICAL ERROR
-     * Data type patterns must align (str→str, int→int, float→float)
-   - If INPUT shows specific text casing → OUTPUT must match casing
-   - If INPUT shows numeric pattern → OUTPUT must match range/pattern
-   
-5. **DETECT COMMON DATA TYPE ERRORS**:
-   - ❌ INPUT has_formulas=true but OUTPUT has_formulas=false → FAILED 
-      (code EVALUATED formulas and wrote VALUES instead of FORMULA STRINGS)
-   - ❌ INPUT has_formulas=false but OUTPUT has_formulas=true → FAILED
-      (code wrote formulas when plain values expected)
-   - ❌ INPUT sample_values shows strings but OUTPUT shows numbers → FAILED (wrong type conversion)
-   - ❌ Input has UPPER case but output has lower → FAILED (wrong case transformation)
-   - ❌ Neighbor column leak detected → FAILED (code wrote to wrong columns)
-
-**RESPOND WITH ONE OF:**
-
-Option A (PASSED - output pattern matches input pattern):
-```
-VALIDATION PASSED
-Pattern Analysis:
-- Input shows: [describe input pattern briefly]
-- Output shows: [describe output pattern briefly]
-- Match confirmed: [why they align]
-```
-
-Option B (FAILED - pattern mismatch or errors):
-```
-VALIDATION FAILED
-Pattern Mismatch:
-- Input pattern: [what input shows]
-- Output pattern: [what output shows]
-- Root cause: [why code generated wrong format]
-
-Issues:
-1. [specific issue]
-2. [...]
-
-Fix Strategy:
-- [how to match input pattern]
-
-CORRECTED CODE:
-```python
-[provide fully revised code that matches input pattern]
-```
-```
-
-Return ONLY one option.
-"""
+                validation_prompt = build_stage5_success_prompt(
+                    instruction=instruction,
+                    observation_result=observation['response'][:600],
+                    planning_result=plan['response'][:600],
+                    generated_code=implementation['code'],
+                    execution_stdout=exec_result,
+                    answer_position=answer_position,
+                    input_answer_content=input_answer_content[:800],
+                    input_summary_json=input_summary_block,
+                    output_answer_content=answer_content[:800],
+                    output_summary_json=answer_summary_block,
+                    neighbor_alert_json=neighbor_alert_block,
+                )
         
         except Exception as e:
             exec_result = f"Exception during validation execution: {str(e)}"
-            validation_prompt = f"""You are SheetCopilot v2 in CODE VALIDATION stage.
-
-Code execution raised an EXCEPTION. Please fix the code.
-
-💻 **CODE** (has issues):
-```python
-{implementation['code']}
-```
-
-❌ **EXCEPTION**:
-```
-{exec_result}
-```
-
-Provide CORRECTED code:
-"""
+            validation_prompt = build_stage5_failure_prompt(
+                instruction=instruction,
+                observation_result=observation['response'][:500],
+                planning_result=plan['response'][:600],
+                generated_code=implementation['code'],
+                execution_error=exec_result,
+            )
         
         # Generate validation response (logging disabled)
         messages = [
@@ -1283,54 +916,14 @@ Provide CORRECTED code:
                     observation: Dict[str, Any], plan: Dict[str, Any],
                     instruction: str, file_path: str, output_path: str) -> str:
         """Internal method to revise code based on execution errors"""
-        
-        revision_prompt = f"""You are SheetCopilot v2 in ERROR RECOVERY mode.
 
-
-🎯 **TASK**: {instruction}
-
-📊 **SPREADSHEET STRUCTURE** (observed facts):
-{observation['result'][:600]}
-
-📋 **ORIGINAL PLAN**:
-{plan['response'][:600]}
-
-💻 **CURRENT CODE** (has errors):
-```python
-{current_code}
-```
-
-❌ **EXECUTION ERROR**:
-{error_output}
-
-**YOUR DEBUGGING TASK**:
-1. Carefully read the error traceback
-2. Identify root cause (common issues in real-world spreadsheets):
-   - Wrong cell reference (maybe assumed A1 instead of actual position)
-   - Sheet name mismatch
-   - Index out of range (table smaller than expected)
-   - AttributeError (cell is None/empty)
-   - TypeError (wrong data type, need int() or float())
-   - KeyError (sheet doesn't exist)
-   - Excel formula syntax errors:
-     * @ prefix before function names (e.g., @XLOOKUP should be XLOOKUP)
-     * @ prefix before sheet names (e.g., @Sheet1 should be Sheet1)
-     * Wrong string concatenation (e.g., "*&A1&*" should be "*"&A1&"*")
-     * Missing quotes around string literals in formulas
-
-3. Fix the code COMPLETELY
-4. Ensure fix addresses the root cause, not just symptoms
-
-**CRITICAL REMINDERS**:
-- Use OBSERVED cell positions, not assumptions
-- Check cell.value is not None before operations
-- Validate indices are within actual range
-- Use correct sheet names from observation
-- ⚠️ AVOID CIRCULAR REFERENCES: Do NOT reference target cells in formulas
-- ⚠️ EXCEL FORMULA SYNTAX: NO @ prefix, correct string concatenation with &
-
-**Generate FIXED code**:
-"""
+        revision_prompt = build_stage6_revision_prompt(
+            instruction=instruction,
+            observation_result=observation['result'][:600],
+            planning_result=plan['response'][:600],
+            current_code=current_code,
+            execution_error=error_output,
+        )
         
         # Generate revised code (prompt logging disabled)
         messages = [

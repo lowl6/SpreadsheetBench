@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from llm_api import get_llm_response
 from code_exec import get_exec_client, extract_code, exec_code
-from prompt_format import PROMPT_FORMAT_SINGLE, PROMPT_DF_RCT_FORMAT , PROMPT_NO_DF_RCT_FORMAT
+from outputs.prompt_format import PROMPT_FORMAT_SINGLE, PROMPT_DF_RCT_FORMAT , PROMPT_NO_DF_RCT_FORMAT
 
 
 def gen_file_content(input_file):

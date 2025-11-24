@@ -1,26 +1,4 @@
 [
-
-    {
-        "id": 37228,
-        "instruction": "How can I return the delivery window based on the specified window in Column E, handling stores with either one or two delivery windows without altering the existing string, using Excel formulas?",
-        "spreadsheet_path": "spreadsheet/37228",
-        "instruction_type": "Cell-Level Manipulation",
-        "answer_position": "G2:G23"
-    },
-    {
-        "id": 57232,
-        "instruction": "How can I retrieve the corresponding volume from a workbook if the origin port, equipment size, and destination port match across two different sheets, where volumes are recorded in three separate columns associated with different ports? I have tried using Index & Match functions without success. Could someone also suggest how to achieve this using VBA?\nThe formula data output result may be \"#N/A\".",
-        "spreadsheet_path": "spreadsheet/57232",
-        "instruction_type": "Cell-Level Manipulation",
-        "answer_position": "'Sea Freight Rates'!H2:H191"
-    },
-    {
-        "id": 33036,
-        "instruction": "I need a formula that will look at the text in cell C2 and output specific values in Column D based on certain text criteria. If it contains 'Wall', it should output 'Home & Garden > Lighting > Lighting Fixtures > Wall Light Fixtures'. If it contains 'Floor' or 'Table', it should output 'Home & Garden > Lighting > Lamps'. However, I need to distinguish between 'Table' and other words like 'adjustable' or 'paintable' that also contain the word 'table' but should not trigger the same output. If none of the specified words are present, the default output should be 'Home & Garden > Lighting > Lighting Fixtures > Ceiling Light Fixtures'. I have provided an example file for reference.",
-        "spreadsheet_path": "spreadsheet/33036",
-        "instruction_type": "Cell-Level Manipulation",
-        "answer_position": "D2:D74"
-    },
     {
         "id": 39180,
         "instruction": "How can I look up and sum values in Excel where my lookup array is A3:A57 and B3:B57, and I want to sum the corresponding values in column C3:C57 to display in cell C2? The sum should only include the values from the rows where the cells in column C are not empty. For example, if the values in column C for Arugula, Beetroot, and Carrot are 4.0, 5.0, and 5.0 respectively, the sum should be 14.0. However, I am encountering issues perhaps due to empty cells in column C, and neither VLOOKUP nor XLOOKUP seem to work. I'm using WPS Office.",
