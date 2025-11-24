@@ -786,6 +786,36 @@ wb.close()
                                     for formula_line in coords_lines:
                                         if 'FORMULA =' in formula_line:
                                             formula_text = formula_line.split('FORMULA =')[1].strip()
+                                            # New Pattern: Misuse of SUMPRODUCT summing criteria/compare range
+                                            # Detect structure: =SUMPRODUCT(--(Xrange=Yrange), optional --(Yrange<>""), Yrange)
+                                            try:
+                                                sp_match = re.search(r"SUMPRODUCT\s*\((.+)\)", formula_text, re.IGNORECASE)
+                                                if sp_match:
+                                                    inner = sp_match.group(1)
+                                                    # Split top-level commas (naive, acceptable here)
+                                                    parts = [p.strip() for p in inner.split(',')]
+                                                    # Find comparison pattern part like --(A3:A57=C3:C57)
+                                                    comp_parts = [p for p in parts if re.search(r"--?\(\s*([A-Z]+\d+:[A-Z]+\d+)\s*=\s*([A-Z]+\d+:[A-Z]+\d+)\s*\)", p)]
+                                                    if comp_parts:
+                                                        m = re.search(r"--?\(\s*([A-Z]+\d+:[A-Z]+\d+)\s*=\s*([A-Z]+\d+:[A-Z]+\d+)\s*\)", comp_parts[0])
+                                                        left_range, right_range = m.group(1), m.group(2)
+                                                        # Value range is usually last argument if not another comparison
+                                                        value_range_candidates = [pr for pr in parts if re.match(r"[A-Z]+\d+:[A-Z]+\d+", pr)]
+                                                        if value_range_candidates:
+                                                            last_range = value_range_candidates[-1]
+                                                            # If last range equals either comparison side and NOT the typical numeric column (heuristic), flag it
+                                                            if last_range in (left_range, right_range):
+                                                                suspicious_patterns.append(
+                                                                    f"⚠️ MISUSED_SUMPRODUCT: Final argument {last_range} is same as comparison range ({left_range}={right_range}). "
+                                                                    f"Likely summing criteria/text column. Use numeric VALUE column instead, e.g. =SUMPRODUCT(--({left_range}={right_range}), B3:B57)."
+                                                                )
+                                                                # Additionally, if all numeric results are zero this strengthens suspicion
+                                                                if calc_numeric and all(v == 0 for v in calc_numeric):
+                                                                    suspicious_patterns.append(
+                                                                        "⚠️ ZERO_RESULT_WITH_CRITERIA_SUM: SUMPRODUCT produced all zeros while summing criteria range; replace last argument with numeric value column."
+                                                                    )
+                                            except Exception:
+                                                pass
                                             # Check for SUM/SUMIF/SUMIFS patterns - extract first range (sum_range)
                                             sum_match = re.search(r'SUM(?:IF|IFS)?\s*\(\s*([A-Z]+\d+:[A-Z]+\d+)', formula_text, re.IGNORECASE)
                                             if sum_match:
@@ -969,6 +999,24 @@ wb.close()
         
         # Replace hardcoded paths before execution (important for code reuse)
         code_to_execute = self._replace_hardcoded_paths(code_to_execute, file_path, output_path)
+
+        # Force override: ensure output_path variable and final save use correct file for this test case.
+        # We prepend a small shim that rebinds input_path/output_path regardless of what the generated code had.
+        override_header = (
+            "# === Forced per-test-case path override ===\n"
+            f"input_path = '{file_path}'\n"
+            f"output_path = '{output_path}'\n"
+            "# =========================================\n"
+        )
+        # Only prepend if not already at top
+        if 'Forced per-test-case path override' not in code_to_execute.split('\n',1)[0]:
+            code_to_execute = override_header + code_to_execute
+        # Normalize any direct wb.save("...") to wb.save(output_path)
+        import re as _re
+        code_to_execute = _re.sub(r"wb\.save\(['\"]([^'\"]+)['\"]\)", "wb.save(output_path)", code_to_execute)
+
+        # If there are multiple wb.save calls, keep them but ensure they all use output_path
+        code_to_execute = _re.sub(r"wb\.save\(([^)]+)\)", "wb.save(output_path)", code_to_execute)
         
         for revision_num in range(self.max_revisions + 1):
             try:
@@ -1154,7 +1202,50 @@ wb.close()
             f"output_path = '{output_path}'",
             code
         )
-        
+        # Pattern 4: output_path built via os.path.join(..., 'N_<taskid>_output.xlsx') not matched above
+        # We want to replace any hardcoded test-case index in the output filename with current one.
+        try:
+            import os as _os
+            # file_path looks like /mnt/data/test1/spreadsheet/79-7/2_79-7_input.xlsx
+            in_base = _os.path.basename(file_path)
+            if in_base.endswith('_input.xlsx'):
+                prefix = in_base[:-11]  # remove '_input.xlsx'
+                # prefix: e.g. '2_79-7' split first part (case index) and task id
+                if '_' in prefix:
+                    parts = prefix.split('_', 1)
+                    case_index_str, task_id_only = parts[0], parts[1]
+                else:
+                    case_index_str, task_id_only = '', prefix
+            else:
+                task_id_only = ''
+                case_index_str = ''
+        except Exception:
+            task_id_only = ''
+            case_index_str = ''
+
+        desired_filename = output_path.split('/')[-1]
+        if task_id_only:
+            # Replace literal filenames like "1_<taskid>_output.xlsx"
+            code = re.sub(
+                rf"['\"]\d+_{re.escape(task_id_only)}_output\.xlsx['\"]",
+                f"'{desired_filename}'",
+                code
+            )
+            # Replace os.path.join second argument if hardcoded
+            code = re.sub(
+                rf"os\.path\.join\(([^,]+),\s*['\"]\d+_{re.escape(task_id_only)}_output\.xlsx['\"]\)",
+                f"os.path.join(\1, '{desired_filename}')",
+                code
+            )
+
+        # Safety override: if code sets output_path via os.path.join with wrong filename and we didn't catch it,
+        # ensure we forcibly assign correct output_path before first save.
+        if 'wb.save(' in code and desired_filename not in code:
+            override_line = f"\n# Override output path for current test case\noutput_path = '{output_path}'\n"
+            parts = code.split('wb.save(')
+            parts[0] += override_line
+            code = 'wb.save('.join(parts)
+
         return code
     
     def solve_task(self, task_data: Dict[str, Any], dataset_path: str) -> Dict[str, Any]:
